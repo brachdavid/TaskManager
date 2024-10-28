@@ -8,7 +8,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using TaskManager.Components.Account.Pages;
 using TaskManager.Components.Account.Pages.Manage;
-using TaskManager.Data;
+using TaskManager.Models;
 
 namespace Microsoft.AspNetCore.Routing
 {

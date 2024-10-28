@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Identity;
-using TaskManager.Data;
+using TaskManager.Models;
 
 namespace TaskManager.Components.Account
 {

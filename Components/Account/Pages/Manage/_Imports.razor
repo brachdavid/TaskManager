@@ -1,2 +1,13 @@
-﻿@layout ManageLayout
+﻿@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using TaskManager.Models
+@using Microsoft.AspNetCore.Authentication
+@using TaskManager.Data
+@using System.Text
+@using System.Text.Encodings.Web
+@using Microsoft.AspNetCore.WebUtilities
+@using System.Globalization
+@using Microsoft.AspNetCore.Http.Features
+
+@layout ManageLayout
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]

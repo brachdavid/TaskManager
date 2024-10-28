@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using TaskManager.Components;
 using TaskManager.Components.Account;
 using TaskManager.Data;
+using TaskManager.Models;
 
 namespace TaskManager
 {
