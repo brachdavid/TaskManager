@@ -34,12 +34,12 @@ namespace TaskManager
                 options.UseSqlServer(connectionString));
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-            builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
+            builder.Services.AddIdentityCore<TeamMember>(options => options.SignIn.RequireConfirmedAccount = true)
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddSignInManager()
                 .AddDefaultTokenProviders();
 
-            builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+            builder.Services.AddSingleton<IEmailSender<TeamMember>, IdentityNoOpEmailSender>();
 
             var app = builder.Build();
 

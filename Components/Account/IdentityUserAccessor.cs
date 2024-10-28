@@ -3,9 +3,9 @@ using TaskManager.Data;
 
 namespace TaskManager.Components.Account
 {
-    internal sealed class IdentityUserAccessor(UserManager<ApplicationUser> userManager, IdentityRedirectManager redirectManager)
+    internal sealed class IdentityUserAccessor(UserManager<TeamMember> userManager, IdentityRedirectManager redirectManager)
     {
-        public async Task<ApplicationUser> GetRequiredUserAsync(HttpContext context)
+        public async Task<TeamMember> GetRequiredUserAsync(HttpContext context)
         {
             var user = await userManager.GetUserAsync(context.User);
 
