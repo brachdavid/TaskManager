@@ -1,7 +1,74 @@
 ﻿@page "/"
+@using Microsoft.EntityFrameworkCore
 
-<PageTitle>Home</PageTitle>
+@inject UserManager<TeamMember> UserManager
 
-<h1>Hello, world!</h1>
+<h3>Registered Users and Their Roles</h3>
 
-Welcome to your new app.
+@if (users == null)
+{
+    <p>Loading users...</p>
+}
+else if (!users.Any())
+{
+    <p>No registered users found.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Birth Date</th>
+                <th>Work Position</th>
+                <th>Skill Level</th>
+                <th>Registration date</th>
+                <th>Roles</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in users)
+            {
+                <tr>
+                    <td>@user.Email</td>
+                    <td>@user.FirstName</td>
+                    <td>@user.LastName</td>
+                    <td>@user.BirthDate.ToShortDateString()</td>
+                    <td>@user.WorkPosition</td>
+                    <td>@user.SkillLevel</td>
+                    <td>@user.RegistrationDate</td>
+                    <td>
+                        @if (userRoles.ContainsKey(user.Id))
+                        {
+                            @string.Join(", ", userRoles[user.Id])
+                        }
+                        else
+                        {
+                            <span>No role assigned</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<TeamMember>? users;
+    private Dictionary<string, List<string>> userRoles = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Fetch all users
+        users = await UserManager.Users.ToListAsync();
+
+        // Fetch roles for each user
+        foreach (var user in users)
+        {
+            var roles = await UserManager.GetRolesAsync(user);
+            userRoles[user.Id] = roles.ToList();
+        }
+    }
+}

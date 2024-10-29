@@ -20,21 +20,73 @@
             <h2>Create a new account.</h2>
             <hr />
             <ValidationSummary class="text-danger" role="alert" />
+
+            <!-- E-mail -->
             <div class="form-floating mb-3">
                 <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
                 <label for="email">Email</label>
                 <ValidationMessage For="() => Input.Email" class="text-danger" />
             </div>
+
+            <!-- Password -->
             <div class="form-floating mb-3">
                 <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
                 <label for="password">Password</label>
                 <ValidationMessage For="() => Input.Password" class="text-danger" />
             </div>
+
+            <!-- Confirm password -->
             <div class="form-floating mb-3">
                 <InputText type="password" @bind-Value="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
                 <label for="confirm-password">Confirm Password</label>
                 <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
             </div>
+
+            <!-- First name -->
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.FirstName" class="form-control" placeholder="First Name" />
+                <label for="firstName">First Name</label>
+                <ValidationMessage For="() => Input.FirstName" class="text-danger" />
+            </div>
+
+            <!-- Last name -->
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.LastName" class="form-control" placeholder="Last Name" />
+                <label for="lastName">Last Name</label>
+                <ValidationMessage For="() => Input.LastName" class="text-danger" />
+            </div>
+
+            <!-- Birth date -->
+            <div class="form-floating mb-3">
+                <InputDate @bind-Value="Input.BirthDate" class="form-control" placeholder="Birth Date" />
+                <label for="birthDate">Birth Date</label>
+                <ValidationMessage For="() => Input.BirthDate" class="text-danger" />
+            </div>
+
+            <!-- Work position -->
+            <div class="form-floating mb-3">
+                <InputSelect @bind-Value="Input.WorkPosition" class="form-control">
+                    @foreach (var position in Enum.GetValues<WorkPosition>())
+                    {
+                        <option value="@position">@position.GetDisplayName()</option>
+                    }
+                </InputSelect>
+                <label for="workPosition">Work Position</label>
+                <ValidationMessage For="() => Input.WorkPosition" class="text-danger" />
+            </div>
+
+            <!-- Skill level -->
+            <div class="form-floating mb-3">
+                <InputSelect @bind-Value="Input.SkillLevel" class="form-control">
+                    @foreach (var level in Enum.GetValues<SkillLevel>())
+                    {
+                        <option value="@level">@level.GetDisplayName()</option>
+                    }
+                </InputSelect>
+                <label for="skillLevel">Skill Level</label>
+                <ValidationMessage For="() => Input.SkillLevel" class="text-danger" />
+            </div>
+
             <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
         </EditForm>
     </div>
@@ -51,7 +103,7 @@
     private IEnumerable<IdentityError>? identityErrors;
 
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private RegisterDTO Input { get; set; } = new();
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
@@ -61,6 +113,12 @@
     public async Task RegisterUser(EditContext editContext)
     {
         var user = CreateUser();
+
+        user.FirstName = Input.FirstName;
+        user.LastName = Input.LastName;
+        user.BirthDate = Input.BirthDate;
+        user.WorkPosition = Input.WorkPosition;
+        user.SkillLevel = Input.SkillLevel;
 
         await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
         var emailStore = GetEmailStore();
@@ -74,6 +132,20 @@
         }
 
         Logger.LogInformation("User created a new account with password.");
+
+        // Assign roles based on WorkPosition or Email
+        if (Input.Email.Equals("admin@taskmanager.com", StringComparison.OrdinalIgnoreCase))
+        {
+            await UserManager.AddToRoleAsync(user, "Admin");
+        }
+        else if (user.WorkPosition == WorkPosition.ProjectManager)
+        {
+            await UserManager.AddToRoleAsync(user, "ProjectManager");
+        }
+        else
+        {
+            await UserManager.AddToRoleAsync(user, "Others");
+        }
 
         var userId = await UserManager.GetUserIdAsync(user);
         var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
@@ -117,12 +189,40 @@
         return (IUserEmailStore<TeamMember>)UserStore;
     }
 
-    private sealed class InputModel
+    private sealed class RegisterDTO
     {
         [Required]
         [EmailAddress]
         [Display(Name = "Email")]
         public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "First name is required.")]
+        [StringLength(100, ErrorMessage = "First name can have a maximum of 100 characters.")]
+        [RegularExpression(@"^[a-zA-Zá-žÁ-Ž]+([ '-][a-zA-Zá-žÁ-Ž]+)*$", ErrorMessage = "First name contains invalid characters.")]
+        [StartsWithUppercase(ErrorMessage = "First name must start with an uppercase letter.")]
+        [Display(Name = "First name")]
+        public string FirstName { get; set; } = "";
+
+        [Required(ErrorMessage = "Last name is required.")]
+        [StringLength(100, ErrorMessage = "Last name can have a maximum of 100 characters.")]
+        [RegularExpression(@"^[a-zA-Zá-žÁ-Ž]+([ '-][a-zA-Zá-žÁ-Ž]+)*$", ErrorMessage = "Last name contains invalid characters.")]
+        [StartsWithUppercase(ErrorMessage = "Last name must start with an uppercase letter.")]
+        [Display(Name = "Last name")]
+        public string LastName { get; set; } = "";
+
+        [Required(ErrorMessage = "Birth date is required.")]
+        [DataType(DataType.Date)]
+        [MinimumAge(18, ErrorMessage = "Team member must be at least 18 years old.")]
+        [Display(Name = "Birthdate")]
+        public DateTime BirthDate { get; set; }
+
+        [Required(ErrorMessage = "Work position is required.")]
+        [Display(Name = "Work position")]
+        public WorkPosition WorkPosition { get; set; }
+
+        [Required(ErrorMessage = "Skill level is required.")]
+        [Display(Name = "Skill level")]
+        public SkillLevel SkillLevel { get; set; }
 
         [Required]
         [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]

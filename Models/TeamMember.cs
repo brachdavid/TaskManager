@@ -24,7 +24,7 @@ namespace TaskManager.Models
         /// </summary>
         [Required(ErrorMessage = "Last name is required.")]
         [StringLength(100, ErrorMessage = "Last name can have a maximum of 100 characters.")]
-        [RegularExpression(@"^[a-zA-Z·-û¡-é]+([ '-][a-zA-Z·-û¡-é]+)*$", ErrorMessage = "First name contains invalid characters.")]
+        [RegularExpression(@"^[a-zA-Z·-û¡-é]+([ '-][a-zA-Z·-û¡-é]+)*$", ErrorMessage = "Last name contains invalid characters.")]
         [StartsWithUppercase(ErrorMessage = "Last name must start with an uppercase letter.")]
         public required string LastName { get; set; }
 
