@@ -87,6 +87,13 @@
                 <ValidationMessage For="() => Input.SkillLevel" class="text-danger" />
             </div>
 
+            <!-- Phone Number -->
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.PhoneNumber" class="form-control" placeholder="Phone number" />
+                <label for="phone-number">Phone Number</label>
+                <ValidationMessage For="() => Input.PhoneNumber" class="text-danger" />
+            </div>
+
             <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
         </EditForm>
     </div>
@@ -119,6 +126,7 @@
         user.BirthDate = Input.BirthDate;
         user.WorkPosition = Input.WorkPosition;
         user.SkillLevel = Input.SkillLevel;
+        user.PhoneNumber = Input.PhoneNumber;
 
         await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
         var emailStore = GetEmailStore();
@@ -234,5 +242,10 @@
         [Display(Name = "Confirm password")]
         [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
         public string ConfirmPassword { get; set; } = "";
+
+        [Required(ErrorMessage = "Phone number is required.")]
+        [Phone(ErrorMessage = "Enter the phone number in the correct format.")]
+        [Display(Name = "Phone number")]
+        public string? PhoneNumber { get; set; }
     }
 }

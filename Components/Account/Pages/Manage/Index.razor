@@ -16,12 +16,58 @@
             <DataAnnotationsValidator />
             <ValidationSummary class="text-danger" role="alert" />
             <div class="form-floating mb-3">
-                <input type="text" value="@username" class="form-control" placeholder="Please choose your username." disabled />
-                <label for="username" class="form-label">Username</label>
+                <input type="text" value="@username" class="form-control" placeholder="Username" disabled />
+                <label for="username">Username</label>
             </div>
+
+            <!-- Birth Date -->
             <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.PhoneNumber" class="form-control" placeholder="Please enter your phone number." />
-                <label for="phone-number" class="form-label">Phone number</label>
+                <input type="text" value="@Input.BirthDate.ToShortDateString()" class="form-control" placeholder="Birth Date" readonly />
+                <label for="birthDate">Birth Date</label>
+            </div>
+
+            <!-- First Name -->
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.FirstName" class="form-control" placeholder="First Name" />
+                <label for="firstName">First Name</label>
+                <ValidationMessage For="() => Input.FirstName" class="text-danger" />
+            </div>
+
+            <!-- Last Name -->
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.LastName" class="form-control" placeholder="Last Name" />
+                <label for="lastName">Last Name</label>
+                <ValidationMessage For="() => Input.LastName" class="text-danger" />
+            </div>
+
+            <!-- Work Position -->
+            <div class="form-floating mb-3">
+                <InputSelect @bind-Value="Input.WorkPosition" class="form-control">
+                    @foreach (var position in Enum.GetValues<WorkPosition>())
+                    {
+                        <option value="@position">@position.GetDisplayName()</option>
+                    }
+                </InputSelect>
+                <label for="workPosition">Work Position</label>
+                <ValidationMessage For="() => Input.WorkPosition" class="text-danger" />
+            </div>
+
+            <!-- Skill Level -->
+            <div class="form-floating mb-3">
+                <InputSelect @bind-Value="Input.SkillLevel" class="form-control">
+                    @foreach (var level in Enum.GetValues<SkillLevel>())
+                    {
+                        <option value="@level">@level.GetDisplayName()</option>
+                    }
+                </InputSelect>
+                <label for="skillLevel">Skill Level</label>
+                <ValidationMessage For="() => Input.SkillLevel" class="text-danger" />
+            </div>
+
+            <!-- Phone Number -->
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.PhoneNumber" class="form-control" placeholder="Phone number" />
+                <label for="phone-number">Phone Number</label>
                 <ValidationMessage For="() => Input.PhoneNumber" class="text-danger" />
             </div>
             <button type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
@@ -32,7 +78,6 @@
 @code {
     private TeamMember user = default!;
     private string? username;
-    private string? phoneNumber;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -44,19 +89,49 @@
     {
         user = await UserAccessor.GetRequiredUserAsync(HttpContext);
         username = await UserManager.GetUserNameAsync(user);
-        phoneNumber = await UserManager.GetPhoneNumberAsync(user);
 
-        Input.PhoneNumber ??= phoneNumber;
+        Input.PhoneNumber ??= user.PhoneNumber;
+        Input.FirstName ??= user.FirstName;
+        Input.LastName ??= user.LastName;
+        Input.BirthDate = user.BirthDate;
+        Input.WorkPosition = Input.WorkPosition == default ? user.WorkPosition : Input.WorkPosition;
+        Input.SkillLevel = Input.SkillLevel == default ? user.SkillLevel : Input.SkillLevel;
     }
 
     private async Task OnValidSubmitAsync()
     {
-        if (Input.PhoneNumber != phoneNumber)
+        if (Input.PhoneNumber != user.PhoneNumber || Input.FirstName != user.FirstName || Input.LastName != user.LastName || Input.WorkPosition != user.WorkPosition || Input.SkillLevel != user.SkillLevel)
         {
-            var setPhoneResult = await UserManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
-            if (!setPhoneResult.Succeeded)
+            user.FirstName = Input.FirstName ?? string.Empty;
+            user.LastName = Input.LastName ?? string.Empty;
+            user.PhoneNumber = Input.PhoneNumber ?? string.Empty;
+            user.WorkPosition = Input.WorkPosition;
+            user.SkillLevel = Input.SkillLevel;
+
+            var currentRole = await UserManager.GetRolesAsync(user);
+            if (currentRole.Any())
             {
-                RedirectManager.RedirectToCurrentPageWithStatus("Error: Failed to set phone number.", HttpContext);
+                var removeResult = await UserManager.RemoveFromRolesAsync(user, currentRole);
+                if (!removeResult.Succeeded)
+                {
+                    RedirectManager.RedirectToCurrentPageWithStatus("Error: Failed to remove old roles.", HttpContext);
+                    return;
+                }
+            }
+
+            string newRole = user.WorkPosition == WorkPosition.ProjectManager ? "ProjectManager" : "Others";
+            var addRoleResult = await UserManager.AddToRoleAsync(user, newRole);
+            if (!addRoleResult.Succeeded)
+            {
+                RedirectManager.RedirectToCurrentPageWithStatus("Error: Failed to assign new role.", HttpContext);
+                return;
+            }
+
+            var updateResult = await UserManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                RedirectManager.RedirectToCurrentPageWithStatus("Error: Failed to update profile.", HttpContext);
+                return;
             }
         }
 
@@ -66,8 +141,33 @@
 
     private sealed class InputModel
     {
-        [Phone]
+        [Required(ErrorMessage = "Phone number is required.")]
+        [Phone(ErrorMessage = "Enter the phone number in the correct format.")]
         [Display(Name = "Phone number")]
         public string? PhoneNumber { get; set; }
+
+        [Required(ErrorMessage = "First name is required.")]
+        [StringLength(100, ErrorMessage = "First name can have a maximum of 100 characters.")]
+        [RegularExpression(@"^[a-zA-Zá-žÁ-Ž]+([ '-][a-zA-Zá-žÁ-Ž]+)*$", ErrorMessage = "First name contains invalid characters.")]
+        [StartsWithUppercase(ErrorMessage = "First name must start with an uppercase letter.")]
+        [Display(Name = "First name")]
+        public string? FirstName { get; set; }
+
+        [Required(ErrorMessage = "Last name is required.")]
+        [StringLength(100, ErrorMessage = "Last name can have a maximum of 100 characters.")]
+        [RegularExpression(@"^[a-zA-Zá-žÁ-Ž]+([ '-][a-zA-Zá-žÁ-Ž]+)*$", ErrorMessage = "Last name contains invalid characters.")]
+        [StartsWithUppercase(ErrorMessage = "Last name must start with an uppercase letter.")]
+        [Display(Name = "Last name")]
+        public string? LastName { get; set; }
+
+        public DateTime BirthDate { get; set; }
+
+        [Required(ErrorMessage = "Work position is required.")]
+        [Display(Name = "Work position")]
+        public WorkPosition WorkPosition { get; set; }
+
+        [Required(ErrorMessage = "Skill level is required.")]
+        [Display(Name = "Skill level")]
+        public SkillLevel SkillLevel { get; set; }
     }
 }
