@@ -1,10 +1,5 @@
 ﻿@page "/new-client"
 
-@using System.ComponentModel.DataAnnotations
-@using Microsoft.EntityFrameworkCore
-@using TaskManager.Models
-@using TaskManager.Utilities.CustomValidations
-@using TaskManager.Utilities.Enums
 @inject TaskManager.Data.ApplicationDbContext DbContext
 @inject NavigationManager NavigationManager
 
@@ -48,7 +43,7 @@ else
                 <ValidationMessage For="() => Input.Industry" class="text-danger" />
             </div>
 
-            <!-- Contact Information -->
+            <!-- Contact person -->
             <div class="form-floating mb-3">
                 <InputText @bind-Value="Input.ContactPerson" class="form-control" placeholder="Contact Person" />
                 <label for="contactPerson">Contact Person</label>

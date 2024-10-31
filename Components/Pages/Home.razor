@@ -1,6 +1,4 @@
 ﻿@page "/"
-@using Microsoft.EntityFrameworkCore
-@using TaskManager.Utilities.Enums
 
 @inject UserManager<TeamMember> UserManager
 @inject TaskManager.Data.ApplicationDbContext DbContext
@@ -57,13 +55,9 @@ else
     </table>
 }
 
-<h3>Clients List</h3>
+<h3>Client List</h3>
 
-@if (clients == null)
-{
-    <p>Loading clients...</p>
-}
-else if (!clients.Any())
+@if (clients == null || !clients.Any())
 {
     <p>No clients available.</p>
 }
@@ -72,13 +66,10 @@ else
     <table class="table table-striped">
         <thead>
             <tr>
-                <th>Client Name</th>
-                <th>Description</th>
+                <th>Name</th>
                 <th>Industry</th>
                 <th>Contact Person</th>
-                <th>Contact Email</th>
-                <th>Contact Phone</th>
-                <th>Start Date</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -86,12 +77,11 @@ else
             {
                 <tr>
                     <td>@client.Name</td>
-                    <td>@client.Description</td>
                     <td>@client.Industry.GetDisplayName()</td>
                     <td>@client.ContactPerson</td>
-                    <td>@client.ContactEmail</td>
-                    <td>@client.ContactPhone</td>
-                    <td>@client.StartDate.ToShortDateString()</td>
+                    <td>
+                        <a href="@($"/client-profile/{client.Id}")" class="btn btn-link">View Profile</a>
+                    </td>
                 </tr>
             }
         </tbody>

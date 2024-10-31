@@ -1,0 +1,152 @@
+﻿@page "/client-profile/{clientId:int}"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.EntityFrameworkCore
+@using TaskManager.Models
+@using TaskManager.Utilities
+@inject ApplicationDbContext DbContext
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Client Profile</PageTitle>
+
+<h3>Client Profile Details</h3>
+
+@if (client != null)
+{
+    <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" method="post" FormName="clientProfile">
+        <DataAnnotationsValidator />
+        <ValidationSummary class="text-danger" />
+
+        <!-- Read-Only Client Information -->
+        <!-- Client (or company) name  -->
+        <div class="form-group">
+            <label for="name">Client Name</label>
+            <input class="form-control" id="name" value="@client.Name" readonly />
+        </div>
+
+        <!-- Description -->
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea class="form-control" id="description" readonly>@client.Description</textarea>
+        </div>
+
+        <!-- Industry -->
+        <div class="form-group">
+            <label for="industry">Industry</label>
+            <input class="form-control" id="industry" value="@client.Industry.GetDisplayName()" readonly />
+        </div>
+
+        <!-- Start date -->
+        <div class="form-group">
+            <label for="startDate">Start Date</label>
+            <input class="form-control" id="startDate" value="@client.StartDate.ToShortDateString()" readonly />
+        </div>
+
+        <!-- Editable Client Information -->
+        <!-- Contact Person -->
+        <div class="form-group">
+            <label for="contactPerson">Contact Person</label>
+            <InputText @bind-Value="Input.ContactPerson" class="form-control" placeholder="Contact Person" />
+            <ValidationMessage For="() => Input.ContactPerson" class="text-danger" />
+        </div>
+
+        <!-- Contact e-mail -->
+        <div class="form-group">
+            <label for="contactEmail">Contact Email</label>
+            <InputText @bind-Value="Input.ContactEmail" class="form-control" placeholder="Contact Email" />
+            <ValidationMessage For="() => Input.ContactEmail" class="text-danger" />
+        </div>
+
+        <!-- Contact phone number -->
+        <div class="form-group">
+            <label for="contactPhone">Contact Phone</label>
+            <InputText @bind-Value="Input.ContactPhone" class="form-control" placeholder="Contact Phone" />
+            <ValidationMessage For="() => Input.ContactPhone" class="text-danger" />
+        </div>
+
+        <!-- Project Manager Selection -->
+        <div class="form-group">
+            <label for="projectManager">Project Manager</label>
+            <InputSelect @bind-Value="Input.ProjectManagerId" class="form-control">
+                <option value="">Select Project Manager</option>
+                @foreach (var manager in availableManagers)
+                {
+                    <option value="@manager.Id">@manager.FirstName @manager.LastName</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="() => Input.ProjectManagerId" class="text-danger" />
+        </div>
+
+        <button class="btn btn-primary" type="submit">Save Changes</button>
+    </EditForm>
+}
+else
+{
+    <p>Client was not found.</p>
+}
+
+@code {
+    [Parameter]
+    public int clientId { get; set; }
+
+    private Client? client;
+    private List<TeamMember> availableManagers = new();
+
+    [SupplyParameterFromForm]
+    private ClientProfileDTO Input { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load client and available project managers from database
+        client = await DbContext.Clients.Include(c => c.ProjectManager).FirstOrDefaultAsync(c => c.Id == clientId);
+        if (client != null)
+        {
+            // Set the input model values from the loaded client
+            Input.ContactPerson ??= client.ContactPerson;
+            Input.ContactEmail ??= client.ContactEmail;
+            Input.ContactPhone ??= client.ContactPhone;
+            Input.ProjectManagerId = Input.ProjectManagerId == default ? client.ProjectManagerId : Input.ProjectManagerId;
+
+            // Load available managers
+            availableManagers = await DbContext.Users
+                .Where(u => u.WorkPosition == WorkPosition.ProjectManager)
+                .ToListAsync();
+        }
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        if (client != null)
+        {
+            client.ContactPerson = Input.ContactPerson ?? string.Empty;
+            client.ContactEmail = Input.ContactEmail ?? string.Empty;
+            client.ContactPhone = Input.ContactPhone ?? string.Empty;
+            client.ProjectManagerId = Input.ProjectManagerId;
+
+            DbContext.Clients.Update(client);
+            await DbContext.SaveChangesAsync();
+            Navigation.NavigateTo("/");
+        }
+    }
+
+    private sealed class ClientProfileDTO
+    {
+        [Required(ErrorMessage = "Contact person is required.")]
+        [StringLength(100, ErrorMessage = "Contact person name can have a maximum of 100 characters.")]
+        [RegularExpression(@"^[a-zA-Zá-žÁ-Ž\s]+$", ErrorMessage = "Contact person name contains invalid characters.")]
+        [StartsWithUppercase(ErrorMessage = "Contact person name must start with an uppercase letter.")]
+        public string? ContactPerson { get; set; }
+
+        [Required(ErrorMessage = "Contact email is required.")]
+        [EmailAddress(ErrorMessage = "Invalid email address.")]
+        public string? ContactEmail { get; set; }
+
+        [Required(ErrorMessage = "Contact phone is required.")]
+        [Phone(ErrorMessage = "Enter the phone number in the correct format.")]
+        public string? ContactPhone { get; set; }
+
+        [Required(ErrorMessage = "A project manager must be assigned.")]
+        public string? ProjectManagerId { get; set; }
+    }
+}
