@@ -1,7 +1,9 @@
 ﻿@page "/"
 @using Microsoft.EntityFrameworkCore
+@using TaskManager.Utilities.Enums
 
 @inject UserManager<TeamMember> UserManager
+@inject TaskManager.Data.ApplicationDbContext DbContext
 
 <h3>Registered Users and Their Roles</h3>
 
@@ -38,7 +40,7 @@ else
                     <td>@user.BirthDate.ToShortDateString()</td>
                     <td>@user.WorkPosition</td>
                     <td>@user.SkillLevel</td>
-                    <td>@user.RegistrationDate</td>
+                    <td>@user.RegistrationDate.ToShortDateString()</td>
                     <td>
                         @if (userRoles.ContainsKey(user.Id))
                         {
@@ -55,9 +57,85 @@ else
     </table>
 }
 
+<h3>Clients List</h3>
+
+@if (clients == null)
+{
+    <p>Loading clients...</p>
+}
+else if (!clients.Any())
+{
+    <p>No clients available.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Client Name</th>
+                <th>Description</th>
+                <th>Industry</th>
+                <th>Contact Person</th>
+                <th>Contact Email</th>
+                <th>Contact Phone</th>
+                <th>Start Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var client in clients)
+            {
+                <tr>
+                    <td>@client.Name</td>
+                    <td>@client.Description</td>
+                    <td>@client.Industry.GetDisplayName()</td>
+                    <td>@client.ContactPerson</td>
+                    <td>@client.ContactEmail</td>
+                    <td>@client.ContactPhone</td>
+                    <td>@client.StartDate.ToShortDateString()</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<h3>Client-Project Manager Assignments</h3>
+
+@if (clientAssignments == null)
+{
+    <p>Loading client assignments...</p>
+}
+else if (!clientAssignments.Any())
+{
+    <p>No client assignments available.</p>
+}
+else
+{
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Client Name</th>
+                <th>Industry</th>
+                <th>Project Manager</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var assignment in clientAssignments)
+            {
+                <tr>
+                    <td>@assignment.ClientName</td>
+                    <td>@assignment.Industry</td>
+                    <td>@assignment.ProjectManagerName</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
 @code {
     private List<TeamMember>? users;
     private Dictionary<string, List<string>> userRoles = new();
+    private List<Client>? clients;
+    private List<ClientAssignment> clientAssignments = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -70,5 +148,26 @@ else
             var roles = await UserManager.GetRolesAsync(user);
             userRoles[user.Id] = roles.ToList();
         }
+
+        // Fetch all clients
+        clients = await DbContext.Clients.ToListAsync();
+
+        // Fetch client assignments with project managers
+        clientAssignments = await DbContext.Clients
+            .Include(c => c.ProjectManager)
+            .Select(c => new ClientAssignment
+                {
+                    ClientName = c.Name,
+                    Industry = c.Industry.GetDisplayName(),
+                    ProjectManagerName = c.ProjectManager != null ? $"{c.ProjectManager.FirstName} {c.ProjectManager.LastName}" : "Unassigned"
+                })
+            .ToListAsync();
+    }
+
+    private class ClientAssignment
+    {
+        public string ClientName { get; set; } = string.Empty;
+        public string Industry { get; set; } = string.Empty;
+        public string ProjectManagerName { get; set; } = "Unassigned";
     }
 }

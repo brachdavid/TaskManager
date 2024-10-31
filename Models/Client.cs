@@ -57,7 +57,7 @@ namespace TaskManager.Models
         /// Phone number of the client or contact person.
         /// </summary>
         [Required(ErrorMessage = "Contact phone is required.")]
-        [RegularExpression(@"^\+?\d{1,3}(\s\d{3}){3}$", ErrorMessage = "Phone number must have format +420 xxx xxx xxx.")]
+        [Phone(ErrorMessage = "Enter the phone number in the correct format.")]
         public required string ContactPhone { get; set; }
 
         /// <summary>

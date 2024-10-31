@@ -11,7 +11,7 @@ namespace TaskManager.Utilities.CustomValidations
         {
             if (value == null)
             {
-                // [Required] atribut se postará o kontrolu null hodnoty.
+                // [Required] attribute takes care of checking the null value.
                 return ValidationResult.Success;
             }
 
@@ -20,11 +20,11 @@ namespace TaskManager.Utilities.CustomValidations
                 return new ValidationResult("Invalid date format.");
             }
 
-            // Získání instance objektu, který je validován
+            // Gett an instance of an object that is validated
             var instance = validationContext.ObjectInstance;
             var type = instance.GetType();
 
-            // Získání vlastnosti StartDate
+            // Gett property StartDate
             var startDateProperty = type.GetProperty("StartDate");
             if (startDateProperty == null)
             {

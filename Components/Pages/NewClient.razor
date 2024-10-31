@@ -1,0 +1,159 @@
+﻿@page "/new-client"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.EntityFrameworkCore
+@using TaskManager.Models
+@using TaskManager.Utilities.CustomValidations
+@using TaskManager.Utilities.Enums
+@inject TaskManager.Data.ApplicationDbContext DbContext
+@inject NavigationManager NavigationManager
+
+<h3>Create New Client</h3>
+
+@if (!availableManagers.Any())
+{
+    <p class="text-danger">No Project Managers available for assignment. Please hire a Project Manager before creating a new client.</p>
+}
+else
+{
+<div class="row">
+    <div class="col-md-6">
+        <EditForm Model="Input" OnValidSubmit="AddClient" method="post" FormName="newClient">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <!-- Client (or company) name -->
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Name" class="form-control" placeholder="Client Name" />
+                <label for="name">Client Name</label>
+                <ValidationMessage For="() => Input.Name" class="text-danger" />
+            </div>
+
+            <!-- Description -->
+            <div class="form-floating mb-3">
+                <InputTextArea @bind-Value="Input.Description" class="form-control" placeholder="Description" />
+                <label for="description">Description</label>
+                <ValidationMessage For="() => Input.Description" class="text-danger" />
+            </div>
+
+            <!-- Industry -->
+            <div class="form-floating mb-3">
+                <InputSelect @bind-Value="Input.Industry" class="form-control">
+                    @foreach (var industry in Enum.GetValues<Industry>())
+                    {
+                        <option value="@industry">@industry.GetDisplayName()</option>
+                    }
+                </InputSelect>
+                <label for="industry">Industry</label>
+                <ValidationMessage For="() => Input.Industry" class="text-danger" />
+            </div>
+
+            <!-- Contact Information -->
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.ContactPerson" class="form-control" placeholder="Contact Person" />
+                <label for="contactPerson">Contact Person</label>
+                <ValidationMessage For="() => Input.ContactPerson" class="text-danger" />
+            </div>
+
+            <!-- Contact e-mail -->
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.ContactEmail" class="form-control" placeholder="Contact Email" />
+                <label for="contactEmail">Contact Email</label>
+                <ValidationMessage For="() => Input.ContactEmail" class="text-danger" />
+            </div>
+
+            <!-- Contact phone -->
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.ContactPhone" class="form-control" placeholder="Contact Phone" />
+                <label for="contactPhone">Contact Phone</label>
+                <ValidationMessage For="() => Input.ContactPhone" class="text-danger" />
+            </div>
+
+            <!-- Project Manager -->
+            <label>Project Manager:</label>
+            <div class="form-group">
+                <InputSelect @bind-Value="Input.ProjectManagerId" class="form-control">
+                    <option value="">Select Project Manager</option>
+                    @foreach (var user in availableManagers)
+                    {
+                        <option value="@user.Id">@user.FirstName @user.LastName - @user.SkillLevel</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => Input.ProjectManagerId" class="text-danger" />
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">Create Client</button>
+        </EditForm>
+    </div>
+</div>
+}
+
+@code {
+    private List<TeamMember> availableManagers = new List<TeamMember>();
+
+    [SupplyParameterFromForm]
+    private ClientDTO Input { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Loads only users with the Project Manager position
+        availableManagers = await DbContext.Users
+            .Where(u => u.WorkPosition == WorkPosition.ProjectManager)
+            .ToListAsync();
+    }
+
+    public async Task AddClient(EditContext editContext)
+    {
+        // Create new client
+        var client = new Client
+            {
+                Name = Input.Name,
+                Description = Input.Description,
+                Industry = Input.Industry,
+                ContactPerson = Input.ContactPerson,
+                ContactEmail = Input.ContactEmail,
+                ContactPhone = Input.ContactPhone,
+                ProjectManagerId = Input.ProjectManagerId
+            };
+
+        // Add new client to database
+        DbContext.Clients.Add(client);
+        await DbContext.SaveChangesAsync();
+
+        // Redirect to homepage
+        NavigationManager.NavigateTo("/");
+    }
+
+    private sealed class ClientDTO
+    {
+        [Required(ErrorMessage = "Client name is required.")]
+        [StringLength(200, ErrorMessage = "Client name can have a maximum of 200 characters.")]
+        [StartsWithUppercase(ErrorMessage = "Client name must start with an uppercase letter.")]
+        [UniqueClientName(ErrorMessage = "A client with this name already exists.")]
+        public string Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Description is required.")]
+        [StringLength(1000, ErrorMessage = "Description can have a maximum of 1000 characters.")]
+        public string Description { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Industry is required.")]
+        public Industry Industry { get; set; }
+
+        [Required(ErrorMessage = "Contact person is required.")]
+        [StringLength(100, ErrorMessage = "Contact person name can have a maximum of 100 characters.")]
+        [RegularExpression(@"^[a-zA-Zá-žÁ-Ž\s]+$", ErrorMessage = "Contact person name contains invalid characters.")]
+        [StartsWithUppercase(ErrorMessage = "Contact person name must start with an uppercase letter.")]
+        public string ContactPerson { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Contact email is required.")]
+        [EmailAddress(ErrorMessage = "Invalid email format.")]
+        public string ContactEmail { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Contact phone is required.")]
+        [Phone(ErrorMessage = "Enter the phone number in the correct format.")]
+        public string ContactPhone { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "A Project Manager must be assigned.")]
+        public string? ProjectManagerId { get; set; }
+    }
+}
