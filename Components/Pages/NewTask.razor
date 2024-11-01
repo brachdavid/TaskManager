@@ -1,0 +1,147 @@
+﻿@page "/new-task"
+
+@inject TaskManager.Data.ApplicationDbContext DbContext
+@inject NavigationManager NavigationManager
+@inject UserManager<TeamMember> UserManager
+
+<h3>Create New Task</h3>
+
+@if (!availableClients.Any())
+{
+    <p class="text-danger">No clients available. Please create a client before creating a new task.</p>
+}
+else if (!availableTeamMembers.Any())
+{
+    <p class="text-danger">No team members available for assignment. Please hire team members before creating a new task.</p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-6">
+            <EditForm Model="Input" OnValidSubmit="AddTask" method="post" FormName="newTask">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
+
+                <!-- Task Title -->
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.Title" class="form-control" placeholder="Task Title" />
+                    <label for="title">Task Title</label>
+                    <ValidationMessage For="() => Input.Title" class="text-danger" />
+                </div>
+
+                <!-- Task Description -->
+                <div class="form-floating mb-3">
+                    <InputTextArea @bind-Value="Input.Description" class="form-control" placeholder="Task Description" />
+                    <label for="description">Description</label>
+                    <ValidationMessage For="() => Input.Description" class="text-danger" />
+                </div>
+
+                <!-- Due Date -->
+                <div class="form-floating mb-3">
+                    <InputDate @bind-Value="Input.DueDate" class="form-control" />
+                    <label for="dueDate">Due Date</label>
+                    <ValidationMessage For="() => Input.DueDate" class="text-danger" />
+                </div>
+
+                <!-- Client Selection -->
+                <label>Client:</label>
+                <div class="form-group">
+                    <InputSelect @bind-Value="Input.ClientId" class="form-control">
+                        <option value="">Select Client</option>
+                        @foreach (var client in availableClients)
+                        {
+                            <option value="@client.Id">@client.Name</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="() => Input.ClientId" class="text-danger" />
+                </div>
+
+                <!-- Team Member Assignment -->
+                <label>Assign to Team Member:</label>
+                <div class="form-group">
+                    <InputSelect @bind-Value="Input.TeamMemberId" class="form-control">
+                        <option value="">Select Team Member</option>
+                        @foreach (var member in availableTeamMembers)
+                        {
+                            <option value="@member.Id">@member.FirstName @member.LastName</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="() => Input.TeamMemberId" class="text-danger" />
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">Create Task</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Client> availableClients = new();
+    private List<TeamMember> availableTeamMembers = new();
+
+    [SupplyParameterFromForm]
+    private TaskDTO Input { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        /// Load available clients
+        availableClients = await DbContext.Clients.ToListAsync();
+
+        // Load users who are not Project Managers or Admins
+        var allUsers = await DbContext.Users.ToListAsync();
+        availableTeamMembers = new List<TeamMember>();
+
+        foreach (var user in allUsers)
+        {
+            var roles = await UserManager.GetRolesAsync(user);
+            if (!roles.Contains("Admin") && !roles.Contains("ProjectManager"))
+            {
+                availableTeamMembers.Add(user);
+            }
+        }
+    }
+
+    public async Task AddTask(EditContext editContext)
+    {
+        // Create new task
+        var task = new TaskItem
+            {
+                Title = Input.Title,
+                Description = Input.Description,
+                DueDate = Input.DueDate,
+                ClientId = Input.ClientId,
+                TeamMemberId = Input.TeamMemberId
+            };
+
+        // Add new task to database
+        DbContext.TaskItems.Add(task);
+        await DbContext.SaveChangesAsync();
+
+        // Redirect to homepage
+        NavigationManager.NavigateTo("/");
+    }
+
+    private sealed class TaskDTO
+    {
+        [Required(ErrorMessage = "Title is required.")]
+        [StringLength(200, ErrorMessage = "Title can have a maximum of 200 characters.")]
+        [StartsWithUppercase(ErrorMessage = "Title must start with an uppercase letter.")]
+        public string Title { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Description is required.")]
+        [StringLength(1000, ErrorMessage = "Description can have a maximum of 1000 characters.")]
+        [StartsWithUppercase(ErrorMessage = "Description must start with an uppercase letter.")]
+        public string Description { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Due date is required.")]
+        [DataType(DataType.Date)]
+        [DueDate(ErrorMessage = "Due date cannot be in the past.")]
+        public DateTime DueDate { get; set; }
+
+        [Required(ErrorMessage = "A client must be selected.")]
+        public int ClientId { get; set; }
+
+        [Required(ErrorMessage = "Team member must be selected.")]
+        public string? TeamMemberId { get; set; }
+    }
+}

@@ -20,10 +20,11 @@
                 <label for="username">Username</label>
             </div>
 
-            <!-- Birth Date -->
+            <!-- Birth date -->
             <div class="form-floating mb-3">
-                <input type="text" value="@Input.BirthDate.ToShortDateString()" class="form-control" placeholder="Birth Date" readonly />
-                <label for="birthDate">Birth Date</label>
+                <InputDate @bind-Value="Input.BirthDate" class="form-control" placeholder="Due Date" />
+                <ValidationMessage For="() => Input.BirthDate" class="text-danger" />
+                <label for="dueDate">BirthDate</label>
             </div>
 
             <!-- First Name -->
@@ -93,20 +94,21 @@
         Input.PhoneNumber ??= user.PhoneNumber;
         Input.FirstName ??= user.FirstName;
         Input.LastName ??= user.LastName;
-        Input.BirthDate = user.BirthDate;
+        Input.BirthDate = Input.BirthDate == default ? user.BirthDate : Input.BirthDate;
         Input.WorkPosition = Input.WorkPosition == default ? user.WorkPosition : Input.WorkPosition;
         Input.SkillLevel = Input.SkillLevel == default ? user.SkillLevel : Input.SkillLevel;
     }
 
     private async Task OnValidSubmitAsync()
     {
-        if (Input.PhoneNumber != user.PhoneNumber || Input.FirstName != user.FirstName || Input.LastName != user.LastName || Input.WorkPosition != user.WorkPosition || Input.SkillLevel != user.SkillLevel)
+        if (Input.PhoneNumber != user.PhoneNumber || Input.FirstName != user.FirstName || Input.LastName != user.LastName || Input.WorkPosition != user.WorkPosition || Input.SkillLevel != user.SkillLevel || Input.BirthDate != user.BirthDate)
         {
             user.FirstName = Input.FirstName ?? string.Empty;
             user.LastName = Input.LastName ?? string.Empty;
             user.PhoneNumber = Input.PhoneNumber ?? string.Empty;
             user.WorkPosition = Input.WorkPosition;
             user.SkillLevel = Input.SkillLevel;
+            user.BirthDate = Input.BirthDate;
 
             var currentRole = await UserManager.GetRolesAsync(user);
             if (currentRole.Any())
@@ -160,6 +162,10 @@
         [Display(Name = "Last name")]
         public string? LastName { get; set; }
 
+        [Required(ErrorMessage = "Birth date is required.")]
+        [DataType(DataType.Date)]
+        [MinimumAge(18, ErrorMessage = "Team member must be at least 18 years old.")]
+        [Display(Name = "Birthdate")]
         public DateTime BirthDate { get; set; }
 
         [Required(ErrorMessage = "Work position is required.")]

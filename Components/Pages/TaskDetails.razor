@@ -1,0 +1,145 @@
+﻿@page "/task-details/{taskId:int}"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.EntityFrameworkCore
+@using TaskManager.Models
+@using TaskManager.Utilities
+@using TaskManager.Utilities.CustomValidations
+@inject ApplicationDbContext DbContext
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<TeamMember> UserManager
+
+<PageTitle>Edit Task</PageTitle>
+
+<h3>Task Details</h3>
+
+@if (task != null)
+{
+    <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" method="post" FormName="taskEditForm">
+        <DataAnnotationsValidator />
+        <ValidationSummary class="text-danger" />
+
+        <!-- Read-Only Task Information -->
+        <div class="form-group">
+            <label for="title">Task Title</label>
+            <input class="form-control" id="title" value="@task.Title" readonly />
+        </div>
+
+        <div class="form-group">
+            <label for="description">Task Description</label>
+            <textarea class="form-control" id="description" readonly>@task.Description</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="startDate">Start Date</label>
+            <input class="form-control" id="startDate" value="@task.StartDate.ToShortDateString()" readonly />
+        </div>
+
+        <!-- Editable Task Information -->
+        <div class="form-group">
+            <label for="dueDate">Due Date</label>
+            <InputDate @bind-Value="Input.DueDate" class="form-control" placeholder="Due Date" />
+            <ValidationMessage For="() => Input.DueDate" class="text-danger" />
+        </div>
+
+        <div class="form-group">
+            <label for="status">Status</label>
+            <!-- Pokud je status 'Closed', znepřístupní pole pro úpravu -->
+            <InputSelect @bind-Value="Input.Status" class="form-control" disabled="@isClosedStatus">
+                @foreach (var status in Enum.GetValues<Status>())
+                {
+                    <option value="@status">@status.GetDisplayName()</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="() => Input.Status" class="text-danger" />
+        </div>
+
+        <!-- Team Member Selection -->
+        <div class="form-group">
+            <label for="teamMember">Assigned Team Member</label>
+            <InputSelect @bind-Value="Input.TeamMemberId" class="form-control">
+                <option value="">Select Team Member</option>
+                @foreach (var member in availableTeamMembers)
+                {
+                    <option value="@member.Id">@member.FirstName @member.LastName</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="() => Input.TeamMemberId" class="text-danger" />
+        </div>
+
+        <button class="btn btn-primary" type="submit">Save Changes</button>
+    </EditForm>
+}
+else
+{
+    <p>Task was not found.</p>
+}
+
+@code {
+    [Parameter]
+    public int taskId { get; set; }
+
+    private TaskItem? task;
+    private List<TeamMember> availableTeamMembers = new();
+    private bool isClosedStatus => Input.Status == Status.Closed;
+
+    [SupplyParameterFromForm]
+    private TaskEditDTO Input { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load task and available team members from database
+        task = await DbContext.TaskItems.Include(t => t.TeamMember).FirstOrDefaultAsync(t => t.Id == taskId);
+        if (task != null)
+        {
+            // Set the input model values from the loaded task
+            Input.DueDate = Input.DueDate == default ? task.DueDate : Input.DueDate;
+            Input.Status = Input.Status == default ? task.Status : Input.Status;
+            Input.TeamMemberId = Input.TeamMemberId == default ? task.TeamMemberId : Input.TeamMemberId;
+
+            // Load all users and filter out admins and project managers
+            var allUsers = await DbContext.Users.ToListAsync();
+            foreach (var user in allUsers)
+            {
+                var roles = await UserManager.GetRolesAsync(user);
+                if (!roles.Contains("Admin") && !roles.Contains("ProjectManager"))
+                {
+                    availableTeamMembers.Add(user);
+                }
+            }
+        }
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        if (task != null)
+        {
+            // Check for changes to avoid unnecessary updates
+            if (task.DueDate != Input.DueDate || task.Status != Input.Status || task.TeamMemberId != Input.TeamMemberId)
+            {
+                task.DueDate = Input.DueDate;
+                task.Status = Input.Status;
+                task.TeamMemberId = Input.TeamMemberId;
+
+                DbContext.TaskItems.Update(task);
+                await DbContext.SaveChangesAsync();
+            }
+            Navigation.NavigateTo("/");
+        }
+    }
+
+    private sealed class TaskEditDTO
+    {
+        [Required(ErrorMessage = "Due date is required.")]
+        [DataType(DataType.Date)]
+        [DueDate(ErrorMessage = "Due date cannot be in the past.")]
+        public DateTime DueDate { get; set; }
+
+        [Required(ErrorMessage = "Status is required.")]
+        public Status Status { get; set; }
+
+        [Required(ErrorMessage = "Team member is required.")]
+        public string? TeamMemberId { get; set; }
+    }
+}

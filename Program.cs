@@ -82,7 +82,7 @@ namespace TaskManager
         {
             var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
-            string[] roleNames = { "Admin", "ProjectManager", "Others" };
+            string[] roleNames = ["Admin", "ProjectManager", "Others"];
             IdentityResult roleResult;
 
             foreach (var roleName in roleNames)

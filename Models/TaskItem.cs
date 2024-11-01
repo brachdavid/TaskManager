@@ -37,7 +37,7 @@ namespace TaskManager.Models
         /// </summary>
         [Required(ErrorMessage = "Due date is required.")]
         [DataType(DataType.Date)]
-        [DueDate(ErrorMessage = "Due date cannot be in the past or before the start date.")]
+        [DueDate(ErrorMessage = "Due date cannot be in the past.")]
         public DateTime DueDate { get; set; }
 
         /// <summary>

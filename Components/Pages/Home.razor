@@ -55,9 +55,13 @@ else
     </table>
 }
 
-<h3>Client List</h3>
+<h3>Client list</h3>
 
-@if (clients == null || !clients.Any())
+@if (clients == null)
+{
+    <p>Loading clients...</p>
+}
+else if (!clients.Any())
 {
     <p>No clients available.</p>
 }
@@ -88,15 +92,56 @@ else
     </table>
 }
 
-<h3>Client-Project Manager Assignments</h3>
+<h3>Task List</h3>
 
-@if (clientAssignments == null)
+@if (tasks == null)
 {
-    <p>Loading client assignments...</p>
+    <p>Loading tasks...</p>
 }
-else if (!clientAssignments.Any())
+else if (!tasks.Any())
 {
-    <p>No client assignments available.</p>
+    <p>No tasks available.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th>Assigned Team Member</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var task in tasks)
+            {
+                <tr>
+                    <td>@task.Title</td>
+                    <td>@task.Description</td>
+                    <td>@task.DueDate.ToShortDateString()</td>
+                    <td>@task.Status</td>
+                    <td>@(task.TeamMember != null ? $"{task.TeamMember.FirstName} {task.TeamMember.LastName}" : "Unassigned")</td>
+                    <td>
+                        <a href="@($"/task-details/{task.Id}")" class="btn btn-link">Edit Task</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<h3>Clients, tasks and team members</h3>
+
+@if (clientTaskAssignments == null)
+{
+    <p>Loading client-task assignments...</p>
+}
+else if (!clientTaskAssignments.Any())
+{
+    <p>No client-task assignments available.</p>
 }
 else
 {
@@ -104,17 +149,21 @@ else
         <thead>
             <tr>
                 <th>Client Name</th>
-                <th>Industry</th>
-                <th>Project Manager</th>
+                <th>Task Title</th>
+                <th>Due Date</th>
+                <th>Team Member</th>
+                <th>Work Position</th>
             </tr>
         </thead>
         <tbody>
-            @foreach (var assignment in clientAssignments)
+            @foreach (var assignment in clientTaskAssignments)
             {
                 <tr>
                     <td>@assignment.ClientName</td>
-                    <td>@assignment.Industry</td>
-                    <td>@assignment.ProjectManagerName</td>
+                    <td>@assignment.TaskTitle</td>
+                    <td>@assignment.DueDate</td>
+                    <td>@assignment.TeamMemberName</td>
+                    <td>@assignment.TeamMemberPosition</td>
                 </tr>
             }
         </tbody>
@@ -125,39 +174,44 @@ else
     private List<TeamMember>? users;
     private Dictionary<string, List<string>> userRoles = new();
     private List<Client>? clients;
-    private List<ClientAssignment> clientAssignments = new();
+    private List<TaskItem>? tasks;
+    private List<ClientTaskAssignment> clientTaskAssignments = new();
 
     protected override async Task OnInitializedAsync()
     {
-        // Fetch all users
+        // Fetch all users and their roles
         users = await UserManager.Users.ToListAsync();
-
-        // Fetch roles for each user
         foreach (var user in users)
         {
             var roles = await UserManager.GetRolesAsync(user);
             userRoles[user.Id] = roles.ToList();
         }
 
-        // Fetch all clients
+        // Fetch all clients and tasks
         clients = await DbContext.Clients.ToListAsync();
+        tasks = await DbContext.TaskItems.Include(t => t.TeamMember).ToListAsync();
 
-        // Fetch client assignments with project managers
-        clientAssignments = await DbContext.Clients
-            .Include(c => c.ProjectManager)
-            .Select(c => new ClientAssignment
+        // Fetch client, task, and team member assignments
+        clientTaskAssignments = await DbContext.TaskItems
+            .Include(t => t.Client)
+            .Include(t => t.TeamMember)
+            .Select(t => new ClientTaskAssignment
                 {
-                    ClientName = c.Name,
-                    Industry = c.Industry.GetDisplayName(),
-                    ProjectManagerName = c.ProjectManager != null ? $"{c.ProjectManager.FirstName} {c.ProjectManager.LastName}" : "Unassigned"
+                    ClientName = t.Client.Name,
+                    TaskTitle = t.Title,
+                    DueDate = t.DueDate.ToShortDateString(),
+                    TeamMemberName = t.TeamMember != null ? $"{t.TeamMember.FirstName} {t.TeamMember.LastName}" : "Unassigned",
+                    TeamMemberPosition = t.TeamMember != null ? t.TeamMember.WorkPosition.ToString() : "N/A"
                 })
             .ToListAsync();
     }
 
-    private class ClientAssignment
+    private class ClientTaskAssignment
     {
         public string ClientName { get; set; } = string.Empty;
-        public string Industry { get; set; } = string.Empty;
-        public string ProjectManagerName { get; set; } = "Unassigned";
+        public string TaskTitle { get; set; } = string.Empty;
+        public string DueDate { get; set; } = string.Empty;
+        public string TeamMemberName { get; set; } = "Unassigned";
+        public string TeamMemberPosition { get; set; } = "N/A";
     }
 }
