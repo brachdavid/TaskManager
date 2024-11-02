@@ -20,32 +20,30 @@
         <DataAnnotationsValidator />
         <ValidationSummary class="text-danger" />
 
-        <!-- Read-Only Task Information -->
-        <div class="form-group">
+        <div class="form-floating mb-3">
+            <InputText @bind-Value="Input.Title" class="form-control" placeholder="Task Title" disabled="@isClosedStatus" />
+            <ValidationMessage For="() => Input.Title" class="text-danger" />
             <label for="title">Task Title</label>
-            <input class="form-control" id="title" value="@task.Title" readonly />
         </div>
 
-        <div class="form-group">
+        <div class="form-floating mb-3">
+            <InputTextArea @bind-Value="Input.Description" class="form-control" placeholder="Task Description" disabled="@isClosedStatus" />
+            <ValidationMessage For="() => Input.Description" class="text-danger" />
             <label for="description">Task Description</label>
-            <textarea class="form-control" id="description" readonly>@task.Description</textarea>
         </div>
 
-        <div class="form-group">
-            <label for="startDate">Start Date</label>
+        <div class="form-floating mb-3">
             <input class="form-control" id="startDate" value="@task.StartDate.ToShortDateString()" readonly />
+            <label for="startDate">Start Date</label>
         </div>
 
-        <!-- Editable Task Information -->
-        <div class="form-group">
-            <label for="dueDate">Due Date</label>
-            <InputDate @bind-Value="Input.DueDate" class="form-control" placeholder="Due Date" />
+        <div class="form-floating mb-3">
+            <InputDate @bind-Value="Input.DueDate" class="form-control" placeholder="Due Date" disabled="@isClosedStatus" />
             <ValidationMessage For="() => Input.DueDate" class="text-danger" />
+            <label for="dueDate">Due Date</label>
         </div>
 
-        <div class="form-group">
-            <label for="status">Status</label>
-            <!-- Pokud je status 'Closed', znepřístupní pole pro úpravu -->
+        <div class="form-floating mb-3">
             <InputSelect @bind-Value="Input.Status" class="form-control" disabled="@isClosedStatus">
                 @foreach (var status in Enum.GetValues<Status>())
                 {
@@ -53,12 +51,12 @@
                 }
             </InputSelect>
             <ValidationMessage For="() => Input.Status" class="text-danger" />
+            <label for="status">Status</label>
         </div>
 
         <!-- Team Member Selection -->
-        <div class="form-group">
-            <label for="teamMember">Assigned Team Member</label>
-            <InputSelect @bind-Value="Input.TeamMemberId" class="form-control">
+        <div class="form-floating mb-3">
+            <InputSelect @bind-Value="Input.TeamMemberId" class="form-control" disabled="@isClosedStatus">
                 <option value="">Select Team Member</option>
                 @foreach (var member in availableTeamMembers)
                 {
@@ -66,9 +64,11 @@
                 }
             </InputSelect>
             <ValidationMessage For="() => Input.TeamMemberId" class="text-danger" />
+            <label for="teamMember">Assigned Team Member</label>
         </div>
 
-        <button class="btn btn-primary" type="submit">Save Changes</button>
+        <!-- Disable save button if the task is closed -->
+        <button class="btn btn-primary" type="submit" disabled="@isClosedStatus">Save Changes</button>
     </EditForm>
 }
 else
@@ -94,6 +94,8 @@ else
         if (task != null)
         {
             // Set the input model values from the loaded task
+            Input.Title ??= task.Title;
+            Input.Description ??= task.Description;
             Input.DueDate = Input.DueDate == default ? task.DueDate : Input.DueDate;
             Input.Status = Input.Status == default ? task.Status : Input.Status;
             Input.TeamMemberId = Input.TeamMemberId == default ? task.TeamMemberId : Input.TeamMemberId;
@@ -116,8 +118,10 @@ else
         if (task != null)
         {
             // Check for changes to avoid unnecessary updates
-            if (task.DueDate != Input.DueDate || task.Status != Input.Status || task.TeamMemberId != Input.TeamMemberId)
+            if (task.Title != Input.Title || task.Description != Input.Description || task.DueDate != Input.DueDate || task.Status != Input.Status || task.TeamMemberId != Input.TeamMemberId)
             {
+                task.Title = Input.Title ?? string.Empty;
+                task.Description = Input.Description ?? string.Empty;
                 task.DueDate = Input.DueDate;
                 task.Status = Input.Status;
                 task.TeamMemberId = Input.TeamMemberId;
@@ -131,6 +135,16 @@ else
 
     private sealed class TaskEditDTO
     {
+        [Required(ErrorMessage = "Title is required.")]
+        [StringLength(200, ErrorMessage = "Title can have a maximum of 200 characters.")]
+        [StartsWithUppercase(ErrorMessage = "Title must start with an uppercase letter.")]
+        public string? Title { get; set; }
+
+        [Required(ErrorMessage = "Description is required.")]
+        [StringLength(1000, ErrorMessage = "Description can have a maximum of 1000 characters.")]
+        [StartsWithUppercase(ErrorMessage = "Description must start with an uppercase letter.")]
+        public string? Description { get; set; }
+
         [Required(ErrorMessage = "Due date is required.")]
         [DataType(DataType.Date)]
         [DueDate(ErrorMessage = "Due date cannot be in the past.")]

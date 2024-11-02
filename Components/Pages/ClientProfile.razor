@@ -18,56 +18,61 @@
         <DataAnnotationsValidator />
         <ValidationSummary class="text-danger" />
 
-        <!-- Read-Only Client Information -->
         <!-- Client (or company) name  -->
-        <div class="form-group">
+        <div class="form-floating mb-3">
+            <InputText @bind-Value="Input.Name" class="form-control" placeholder="Client Name" />
+            <ValidationMessage For="() => Input.Name" class="text-danger" />
             <label for="name">Client Name</label>
-            <input class="form-control" id="name" value="@client.Name" readonly />
         </div>
 
         <!-- Description -->
-        <div class="form-group">
+        <div class="form-floating mb-3">
+            <InputTextArea @bind-Value="Input.Description" class="form-control" placeholder="Description" />
+            <ValidationMessage For="() => Input.Description" class="text-danger" />
             <label for="description">Description</label>
-            <textarea class="form-control" id="description" readonly>@client.Description</textarea>
         </div>
 
         <!-- Industry -->
-        <div class="form-group">
+        <div class="form-floating mb-3">
+            <InputSelect @bind-Value="Input.Industry" class="form-control">
+                @foreach (var industry in Enum.GetValues<Industry>())
+                {
+                    <option value="@industry">@industry.GetDisplayName()</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="() => Input.Industry" class="text-danger" />
             <label for="industry">Industry</label>
-            <input class="form-control" id="industry" value="@client.Industry.GetDisplayName()" readonly />
         </div>
 
-        <!-- Start date -->
-        <div class="form-group">
-            <label for="startDate">Start Date</label>
+        <!-- Start date (readonly) -->
+        <div class="form-floating mb-3">
             <input class="form-control" id="startDate" value="@client.StartDate.ToShortDateString()" readonly />
+            <label for="startDate">Start Date</label>
         </div>
 
-        <!-- Editable Client Information -->
         <!-- Contact Person -->
-        <div class="form-group">
-            <label for="contactPerson">Contact Person</label>
+        <div class="form-floating mb-3">
             <InputText @bind-Value="Input.ContactPerson" class="form-control" placeholder="Contact Person" />
             <ValidationMessage For="() => Input.ContactPerson" class="text-danger" />
+            <label for="contactPerson">Contact Person</label>
         </div>
 
         <!-- Contact e-mail -->
-        <div class="form-group">
-            <label for="contactEmail">Contact Email</label>
+        <div class="form-floating mb-3">
             <InputText @bind-Value="Input.ContactEmail" class="form-control" placeholder="Contact Email" />
             <ValidationMessage For="() => Input.ContactEmail" class="text-danger" />
+            <label for="contactEmail">Contact Email</label>
         </div>
 
         <!-- Contact phone number -->
-        <div class="form-group">
-            <label for="contactPhone">Contact Phone</label>
+        <div class="form-floating mb-3">
             <InputText @bind-Value="Input.ContactPhone" class="form-control" placeholder="Contact Phone" />
             <ValidationMessage For="() => Input.ContactPhone" class="text-danger" />
+            <label for="contactPhone">Contact Phone</label>
         </div>
 
         <!-- Project Manager Selection -->
-        <div class="form-group">
-            <label for="projectManager">Project Manager</label>
+        <div class="form-floating mb-3">
             <InputSelect @bind-Value="Input.ProjectManagerId" class="form-control">
                 <option value="">Select Project Manager</option>
                 @foreach (var manager in availableManagers)
@@ -76,6 +81,7 @@
                 }
             </InputSelect>
             <ValidationMessage For="() => Input.ProjectManagerId" class="text-danger" />
+            <label for="projectManager">Project Manager</label>
         </div>
 
         <button class="btn btn-primary" type="submit">Save Changes</button>
@@ -103,6 +109,9 @@ else
         if (client != null)
         {
             // Set the input model values from the loaded client
+            Input.Name ??= client.Name;
+            Input.Description ??= client.Description;
+            Input.Industry = Input.Industry == default ? client.Industry : Input.Industry;
             Input.ContactPerson ??= client.ContactPerson;
             Input.ContactEmail ??= client.ContactEmail;
             Input.ContactPhone ??= client.ContactPhone;
@@ -119,19 +128,37 @@ else
     {
         if (client != null)
         {
-            client.ContactPerson = Input.ContactPerson ?? string.Empty;
-            client.ContactEmail = Input.ContactEmail ?? string.Empty;
-            client.ContactPhone = Input.ContactPhone ?? string.Empty;
-            client.ProjectManagerId = Input.ProjectManagerId;
+            if (client.Name != Input.Name || client.Description != Input.Description || client.Industry != Input.Industry || client.ContactPerson != Input.ContactPerson || client.ContactEmail != Input.ContactEmail || client.ContactPerson != Input.ContactPhone || client.ProjectManagerId != Input.ProjectManagerId)
+            {
+                client.Name = Input.Name ?? string.Empty;
+                client.Description = Input.Description ?? string.Empty;
+                client.Industry = Input.Industry;
+                client.ContactPerson = Input.ContactPerson ?? string.Empty;
+                client.ContactEmail = Input.ContactEmail ?? string.Empty;
+                client.ContactPhone = Input.ContactPhone ?? string.Empty;
+                client.ProjectManagerId = Input.ProjectManagerId;
 
-            DbContext.Clients.Update(client);
-            await DbContext.SaveChangesAsync();
-            Navigation.NavigateTo("/");
+                DbContext.Clients.Update(client);
+                await DbContext.SaveChangesAsync();
+                Navigation.NavigateTo("/");
+            }
         }
     }
 
     private sealed class ClientProfileDTO
     {
+        [Required(ErrorMessage = "Client name is required.")]
+        [StringLength(200, ErrorMessage = "Client name can have a maximum of 200 characters.")]
+        [StartsWithUppercase(ErrorMessage = "Client name must start with an uppercase letter.")]
+        public string? Name { get; set; }
+
+        [Required(ErrorMessage = "Description is required.")]
+        [StringLength(1000, ErrorMessage = "Description can have a maximum of 1000 characters.")]
+        public string? Description { get; set; }
+
+        [Required(ErrorMessage = "Industry is required.")]
+        public Industry Industry { get; set; }
+
         [Required(ErrorMessage = "Contact person is required.")]
         [StringLength(100, ErrorMessage = "Contact person name can have a maximum of 100 characters.")]
         [RegularExpression(@"^[a-zA-Zá-žÁ-Ž\s]+$", ErrorMessage = "Contact person name contains invalid characters.")]

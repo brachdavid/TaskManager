@@ -20,13 +20,13 @@
 
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="new-client">
-                <span class="bi bi-bag-plus-fill-nav-menu" aria-hidden="true"></span> New Client
+                <span class="bi bi-boxes d-flex align-items-center" aria-hidden="true"></span> New Client
             </NavLink>
         </div>
 
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="new-task">
-                <span class="bi bi-list-task-nav-menu" aria-hidden="true"></span> New Task
+                <span class="bi bi-check2-circle d-flex align-items-center" aria-hidden="true"></span> New Task
             </NavLink>
         </div>
 
@@ -34,7 +34,7 @@
             <Authorized>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="Account/Manage">
-                        <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @context.User.Identity?.Name
+                        <span aria-hidden="true"></span> @context.User.Identity?.Name
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
@@ -42,7 +42,7 @@
                         <AntiforgeryToken />
                         <input type="hidden" name="ReturnUrl" value="@currentUrl" />
                         <button type="submit" class="nav-link">
-                            <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
+                            <span class="bi bi-door-open-fill d-flex align-items-center" aria-hidden="true"></span> Logout
                         </button>
                     </form>
                 </div>
