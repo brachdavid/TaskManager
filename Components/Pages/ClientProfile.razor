@@ -7,42 +7,50 @@
 @inject ApplicationDbContext DbContext
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<TeamMember> UserManager
 
 <PageTitle>Client Profile</PageTitle>
 
 <h3>Client Profile Details</h3>
 
-@if (client != null)
+@if (isAuthorized == false)
+{
+    <p class="text-danger">You do not have permission to edit this client.</p>
+}
+else if (client != null)
 {
     <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" method="post" FormName="clientProfile">
         <DataAnnotationsValidator />
         <ValidationSummary class="text-danger" />
 
         <!-- Client (or company) name  -->
-        <div class="form-floating mb-3">
-            <InputText @bind-Value="Input.Name" class="form-control" placeholder="Client Name" />
-            <ValidationMessage For="() => Input.Name" class="text-danger" />
-            <label for="name">Client Name</label>
-        </div>
+        @if (isAdmin)
+        {
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Name" class="form-control" placeholder="Client Name" />
+                <ValidationMessage For="() => Input.Name" class="text-danger" />
+                <label for="name">Client Name</label>
+            </div>
 
-        <!-- Description -->
-        <div class="form-floating mb-3">
-            <InputTextArea @bind-Value="Input.Description" class="form-control" placeholder="Description" />
-            <ValidationMessage For="() => Input.Description" class="text-danger" />
-            <label for="description">Description</label>
-        </div>
+            <!-- Description -->
+            <div class="form-floating mb-3">
+                <InputTextArea @bind-Value="Input.Description" class="form-control" placeholder="Description" />
+                <ValidationMessage For="() => Input.Description" class="text-danger" />
+                <label for="description">Description</label>
+            </div>
 
-        <!-- Industry -->
-        <div class="form-floating mb-3">
-            <InputSelect @bind-Value="Input.Industry" class="form-control">
-                @foreach (var industry in Enum.GetValues<Industry>())
-                {
-                    <option value="@industry">@industry.GetDisplayName()</option>
-                }
-            </InputSelect>
-            <ValidationMessage For="() => Input.Industry" class="text-danger" />
-            <label for="industry">Industry</label>
-        </div>
+            <!-- Industry -->
+            <div class="form-floating mb-3">
+                <InputSelect @bind-Value="Input.Industry" class="form-control">
+                    @foreach (var industry in Enum.GetValues<Industry>())
+                    {
+                        <option value="@industry">@industry.GetDisplayName()</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => Input.Industry" class="text-danger" />
+                <label for="industry">Industry</label>
+            </div>
+        }
 
         <!-- Start date (readonly) -->
         <div class="form-floating mb-3">
@@ -72,17 +80,20 @@
         </div>
 
         <!-- Project Manager Selection -->
-        <div class="form-floating mb-3">
-            <InputSelect @bind-Value="Input.ProjectManagerId" class="form-control">
-                <option value="">Select Project Manager</option>
-                @foreach (var manager in availableManagers)
-                {
-                    <option value="@manager.Id">@manager.FirstName @manager.LastName</option>
-                }
-            </InputSelect>
-            <ValidationMessage For="() => Input.ProjectManagerId" class="text-danger" />
-            <label for="projectManager">Project Manager</label>
-        </div>
+        @if (isAdmin)
+        {
+            <div class="form-floating mb-3">
+                <InputSelect @bind-Value="Input.ProjectManagerId" class="form-control">
+                    <option value="">Select Project Manager</option>
+                    @foreach (var manager in availableManagers)
+                    {
+                        <option value="@manager.Id">@manager.FirstName @manager.LastName</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => Input.ProjectManagerId" class="text-danger" />
+                <label for="projectManager">Project Manager</label>
+            </div>
+        }
 
         <button class="btn btn-primary" type="submit">Save Changes</button>
     </EditForm>
@@ -98,17 +109,44 @@ else
 
     private Client? client;
     private List<TeamMember> availableManagers = new();
+    private bool isAuthorized = false;
+    private bool isAdmin = false;
 
     [SupplyParameterFromForm]
     private ClientProfileDTO Input { get; set; } = new();
 
     protected override async Task OnInitializedAsync()
     {
-        // Load client and available project managers from database
-        client = await DbContext.Clients.Include(c => c.ProjectManager).FirstOrDefaultAsync(c => c.Id == clientId);
-        if (client != null)
+        // Získání přihlášeného uživatele
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(authState.User);
+
+        // Ověření, zda je uživatel přihlášen
+        if (user == null)
         {
-            // Set the input model values from the loaded client
+            Navigation.NavigateTo("/Account/AccessDenied");
+            return;
+        }
+
+        // Získání klienta z databáze
+        client = await DbContext.Clients.Include(c => c.ProjectManager).FirstOrDefaultAsync(c => c.Id == clientId);
+
+        if (client == null)
+        {
+            // Pokud klient neexistuje, přesměrování na Not Found stránku
+            Navigation.NavigateTo("/");
+            return;
+        }
+
+        // Ověření, zda je uživatel přiřazený projektový manažer pro tohoto klienta nebo je administrátor
+        var roles = await UserManager.GetRolesAsync(user);
+        isAdmin = roles.Contains("Admin");
+
+        if (isAdmin || client.ProjectManagerId == user.Id)
+        {
+            isAuthorized = true;
+
+            // Naplnění Input modelu daty klienta pro editaci
             Input.Name ??= client.Name;
             Input.Description ??= client.Description;
             Input.Industry = Input.Industry == default ? client.Industry : Input.Industry;
@@ -116,27 +154,60 @@ else
             Input.ContactEmail ??= client.ContactEmail;
             Input.ContactPhone ??= client.ContactPhone;
             Input.ProjectManagerId = Input.ProjectManagerId == default ? client.ProjectManagerId : Input.ProjectManagerId;
-
-            // Load available managers
-            availableManagers = await DbContext.Users
-                .Where(u => u.WorkPosition == WorkPosition.ProjectManager)
-                .ToListAsync();
         }
+        else
+        {
+            // Pokud uživatel nemá oprávnění, nastavíme flag a zobrazíme chybovou hlášku
+            isAuthorized = false;
+        }
+
+        // Načtení dostupných projektových manažerů
+        availableManagers = await DbContext.Users
+            .Where(u => u.WorkPosition == WorkPosition.ProjectManager)
+            .ToListAsync();
     }
 
     private async Task OnValidSubmitAsync()
     {
-        if (client != null)
+        // Získání přihlášeného uživatele
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(authState.User);
+
+        // Ověření, zda je uživatel přihlášen
+        if (user == null)
         {
-            if (client.Name != Input.Name || client.Description != Input.Description || client.Industry != Input.Industry || client.ContactPerson != Input.ContactPerson || client.ContactEmail != Input.ContactEmail || client.ContactPerson != Input.ContactPhone || client.ProjectManagerId != Input.ProjectManagerId)
+            Navigation.NavigateTo("/Account/AccessDenied");
+            return;
+        }
+
+        // Získání klienta z databáze
+        client = await DbContext.Clients.Include(c => c.ProjectManager).FirstOrDefaultAsync(c => c.Id == clientId);
+
+        if (client == null)
+        {
+            // Pokud klient neexistuje, přesměrování na Not Found stránku
+            Navigation.NavigateTo("/");
+            return;
+        }
+
+        if (client != null && isAuthorized)
+        {
+            if (isAdmin || client.ProjectManagerId == user.Id)
             {
-                client.Name = Input.Name ?? string.Empty;
-                client.Description = Input.Description ?? string.Empty;
-                client.Industry = Input.Industry;
-                client.ContactPerson = Input.ContactPerson ?? string.Empty;
-                client.ContactEmail = Input.ContactEmail ?? string.Empty;
-                client.ContactPhone = Input.ContactPhone ?? string.Empty;
-                client.ProjectManagerId = Input.ProjectManagerId;
+                if (client.ContactPerson != Input.ContactPerson || client.ContactEmail != Input.ContactEmail || client.ContactPhone != Input.ContactPhone)
+                {
+                    client.ContactPerson = Input.ContactPerson ?? string.Empty;
+                    client.ContactEmail = Input.ContactEmail ?? string.Empty;
+                    client.ContactPhone = Input.ContactPhone ?? string.Empty;
+                }
+
+                if (isAdmin)
+                {
+                    client.Name = Input.Name ?? string.Empty;
+                    client.Description = Input.Description ?? string.Empty;
+                    client.Industry = Input.Industry;
+                    client.ProjectManagerId = Input.ProjectManagerId;
+                }
 
                 DbContext.Clients.Update(client);
                 await DbContext.SaveChangesAsync();

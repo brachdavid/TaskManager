@@ -73,6 +73,7 @@ else
                 <th>Name</th>
                 <th>Industry</th>
                 <th>Contact Person</th>
+                <th>Project Manager</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -83,6 +84,7 @@ else
                     <td>@client.Name</td>
                     <td>@client.Industry.GetDisplayName()</td>
                     <td>@client.ContactPerson</td>
+                    <td>@client.ProjectManager.LastName @client.ProjectManager.FirstName</td>
                     <td>
                         <a href="@($"/client-profile/{client.Id}")" class="btn btn-link">View Profile</a>
                     </td>
