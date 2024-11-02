@@ -2,6 +2,7 @@
 
 @inject TaskManager.Data.ApplicationDbContext DbContext
 @inject NavigationManager NavigationManager
+@attribute [Authorize(Roles = "Admin")]
 
 <h3>Create New Client</h3>
 
