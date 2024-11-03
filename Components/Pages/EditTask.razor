@@ -1,79 +1,77 @@
 ﻿@page "/edit-task/{taskId:int}"
 
-@using System.ComponentModel.DataAnnotations
-@using Microsoft.EntityFrameworkCore
-@using TaskManager.Models
-@using TaskManager.Utilities
-@using TaskManager.Utilities.CustomValidations
-@inject ApplicationDbContext DbContext
-@inject NavigationManager Navigation
-@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject TaskManager.Data.ApplicationDbContext DbContext
+@inject NavigationManager NavigationManager
 @inject UserManager<TeamMember> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
-<PageTitle>Edit Task</PageTitle>
+<h3>Edit Task</h3>
 
-<h3>Task Details</h3>
-
-@if (task != null)
+@if (!isAuthorized)
 {
-    <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" method="post" FormName="taskEditForm">
+    <p class="text-danger">You do not have permission to access this page.</p>
+}
+else if (task == null)
+{
+    <p class="text-danger">Task not found.</p>
+}
+else
+{
+    <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" method="post" FormName="editTask">
         <DataAnnotationsValidator />
         <ValidationSummary class="text-danger" />
 
+        <!-- Task Title -->
         <div class="form-floating mb-3">
-            <InputText @bind-Value="Input.Title" class="form-control" placeholder="Task Title" disabled="@isClosedStatus" />
-            <ValidationMessage For="() => Input.Title" class="text-danger" />
+            <InputText @bind-Value="Input.Title" class="form-control" placeholder="Task Title" readonly="@(Input.Status == Status.Closed || !canEditAll)" />
             <label for="title">Task Title</label>
+            <ValidationMessage For="() => Input.Title" class="text-danger" />
         </div>
 
+        <!-- Task Description -->
         <div class="form-floating mb-3">
-            <InputTextArea @bind-Value="Input.Description" class="form-control" placeholder="Task Description" disabled="@isClosedStatus" />
+            <InputTextArea @bind-Value="Input.Description" class="form-control" placeholder="Task Description" readonly="@(Input.Status == Status.Closed || !canEditAll)" />
+            <label for="description">Description</label>
             <ValidationMessage For="() => Input.Description" class="text-danger" />
-            <label for="description">Task Description</label>
         </div>
 
+        <!-- Due Date -->
         <div class="form-floating mb-3">
-            <input class="form-control" id="startDate" value="@task.StartDate.ToShortDateString()" readonly />
-            <label for="startDate">Start Date</label>
-        </div>
-
-        <div class="form-floating mb-3">
-            <InputDate @bind-Value="Input.DueDate" class="form-control" placeholder="Due Date" disabled="@isClosedStatus" />
-            <ValidationMessage For="() => Input.DueDate" class="text-danger" />
+            <InputDate @bind-Value="Input.DueDate" class="form-control" readonly="@(Input.Status == Status.Closed || !canEditAll)" />
             <label for="dueDate">Due Date</label>
+            <ValidationMessage For="() => Input.DueDate" class="text-danger" />
         </div>
 
+        <!-- Status (Only Assigned User Can Change to Completed) -->
         <div class="form-floating mb-3">
-            <InputSelect @bind-Value="Input.Status" class="form-control" disabled="@isClosedStatus">
+            <InputSelect @bind-Value="Input.Status" class="form-control" disabled="@(!canEditStatus || Input.Status == Status.Closed)">
                 @foreach (var status in Enum.GetValues<Status>())
                 {
                     <option value="@status">@status.GetDisplayName()</option>
                 }
             </InputSelect>
-            <ValidationMessage For="() => Input.Status" class="text-danger" />
             <label for="status">Status</label>
+            <ValidationMessage For="() => Input.Status" class="text-danger" />
         </div>
 
-        <!-- Team Member Selection -->
-        <div class="form-floating mb-3">
-            <InputSelect @bind-Value="Input.TeamMemberId" class="form-control" disabled="@isClosedStatus">
-                <option value="">Select Team Member</option>
-                @foreach (var member in availableTeamMembers)
-                {
-                    <option value="@member.Id">@member.FirstName @member.LastName</option>
-                }
-            </InputSelect>
-            <ValidationMessage For="() => Input.TeamMemberId" class="text-danger" />
-            <label for="teamMember">Assigned Team Member</label>
-        </div>
+        <!-- Team Member Selection (Admin and Project Manager Only) -->
+        @if (canEditAll && Input.Status != Status.Closed)
+        {
+            <div class="form-floating mb-3">
+                <InputSelect @bind-Value="Input.TeamMemberId" class="form-control">
+                    <option value="">Select Team Member</option>
+                    @foreach (var member in availableTeamMembers)
+                    {
+                        <option value="@member.Id">@member.FirstName @member.LastName</option>
+                    }
+                </InputSelect>
+                <label for="teamMember">Assigned Team Member</label>
+                <ValidationMessage For="() => Input.TeamMemberId" class="text-danger" />
+            </div>
+        }
 
-        <!-- Disable save button if the task is closed -->
-        <button class="btn btn-primary" type="submit" disabled="@isClosedStatus">Save Changes</button>
+        <button type="submit" class="btn btn-primary w-100" disabled="@(Input.Status == Status.Closed)">Save Changes</button>
     </EditForm>
-}
-else
-{
-    <p>Task was not found.</p>
 }
 
 @code {
@@ -82,72 +80,111 @@ else
 
     private TaskItem? task;
     private List<TeamMember> availableTeamMembers = new();
-    private bool isClosedStatus => Input.Status == Status.Closed;
+    private bool isAuthorized = false;
+    private bool canEditAll = false;
+    private bool canEditStatus = false;
 
     [SupplyParameterFromForm]
-    private TaskEditDTO Input { get; set; } = new();
+    private EditTaskDTO Input { get; set; } = new();
 
     protected override async Task OnInitializedAsync()
     {
-        // Load task and available team members from database
-        task = await DbContext.TaskItems.Include(t => t.TeamMember).FirstOrDefaultAsync(t => t.Id == taskId);
-        if (task != null)
-        {
-            // Set the input model values from the loaded task
-            Input.Title ??= task.Title;
-            Input.Description ??= task.Description;
-            Input.DueDate = Input.DueDate == default ? task.DueDate : Input.DueDate;
-            Input.Status = Input.Status == default ? task.Status : Input.Status;
-            Input.TeamMemberId = Input.TeamMemberId == default ? task.TeamMemberId : Input.TeamMemberId;
+        // Get a logged-in user
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(authState.User);
 
-            // Load all users and filter out admins and project managers
-            var allUsers = await DbContext.Users.ToListAsync();
-            foreach (var user in allUsers)
+        // Verify that the user is logged-in
+        if (user == null)
+        {
+            NavigationManager.NavigateTo("/Account/AccessDenied");
+            return;
+        }
+
+        // Get user role
+        var roles = await UserManager.GetRolesAsync(user);
+        var isAdmin = roles.Contains("Admin");
+        var isProjectManager = roles.Contains("ProjectManager");
+
+        // Load task from database
+        task = await DbContext.TaskItems.Include(t => t.Client).FirstOrDefaultAsync(t => t.Id == taskId);
+
+        if (task == null)
+        {
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+
+        // Verify that the user is an administrator, a project manager assigned to a client, or a user associated with a task
+        if (isAdmin)
+        {
+            isAuthorized = true;
+            canEditAll = true;
+        }
+        else if (isProjectManager && task.Client?.ProjectManagerId == user.Id)
+        {
+            isAuthorized = true;
+            canEditAll = true;
+        }
+        else if (task.TeamMemberId == user.Id)
+        {
+            isAuthorized = true;
+            canEditStatus = true;
+        }
+
+        // Set the input model values from the loaded task
+        Input.Title ??= task.Title;
+        Input.Description ??= task.Description;
+        Input.DueDate = Input.DueDate == default ? task.DueDate : Input.DueDate;
+        Input.Status = Input.Status == default ? task.Status : Input.Status;
+        Input.TeamMemberId = Input.TeamMemberId == default ? task.TeamMemberId : Input.TeamMemberId;
+
+        // Load all team members with the role "Others"
+        var allUsers = await DbContext.Users.ToListAsync();
+        foreach (var userItem in allUsers)
+        {
+            var userRoles = await UserManager.GetRolesAsync(userItem);
+            if (userRoles.Contains("Others"))
             {
-                var roles = await UserManager.GetRolesAsync(user);
-                if (!roles.Contains("Admin") && !roles.Contains("ProjectManager"))
-                {
-                    availableTeamMembers.Add(user);
-                }
+                availableTeamMembers.Add(userItem);
             }
         }
     }
 
     private async Task OnValidSubmitAsync()
     {
-        if (task != null)
+        if (task != null && isAuthorized)
         {
-            // Check for changes to avoid unnecessary updates
-            if (task.Title != Input.Title || task.Description != Input.Description || task.DueDate != Input.DueDate || task.Status != Input.Status || task.TeamMemberId != Input.TeamMemberId)
+            if (canEditAll && task.Status != Status.Closed)
             {
                 task.Title = Input.Title ?? string.Empty;
                 task.Description = Input.Description ?? string.Empty;
                 task.DueDate = Input.DueDate;
-                task.Status = Input.Status;
                 task.TeamMemberId = Input.TeamMemberId;
-
-                DbContext.TaskItems.Update(task);
-                await DbContext.SaveChangesAsync();
             }
-            Navigation.NavigateTo("/");
+
+            if (canEditStatus)
+            {
+                task.Status = Input.Status;
+            }
+
+            DbContext.TaskItems.Update(task);
+            await DbContext.SaveChangesAsync();
+            NavigationManager.NavigateTo("/");
         }
     }
 
-    private sealed class TaskEditDTO
+    private sealed class EditTaskDTO
     {
         [Required(ErrorMessage = "Title is required.")]
         [StringLength(200, ErrorMessage = "Title can have a maximum of 200 characters.")]
-        [StartsWithUppercase(ErrorMessage = "Title must start with an uppercase letter.")]
         public string? Title { get; set; }
 
         [Required(ErrorMessage = "Description is required.")]
         [StringLength(1000, ErrorMessage = "Description can have a maximum of 1000 characters.")]
-        [StartsWithUppercase(ErrorMessage = "Description must start with an uppercase letter.")]
         public string? Description { get; set; }
 
         [Required(ErrorMessage = "Due date is required.")]
         [DataType(DataType.Date)]
-        [DueDate(ErrorMessage = "Due date cannot be in the past.")]
         public DateTime DueDate { get; set; }
 
         [Required(ErrorMessage = "Status is required.")]

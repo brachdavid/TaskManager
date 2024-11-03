@@ -90,23 +90,23 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // Získání přihlášeného uživatele
+        // Get a logged-in user
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = await UserManager.GetUserAsync(authState.User);
 
-        // Ověření, zda je uživatel přihlášen
+        // Verify that the user is logged-in
         if (user == null)
         {
             NavigationManager.NavigateTo("/Account/AccessDenied");
             return;
         }
 
-        // Získání rolí uživatele
+        // Get user role
         var roles = await UserManager.GetRolesAsync(user);
         var isAdmin = roles.Contains("Admin");
         var isProjectManager = roles.Contains("ProjectManager");
 
-        // Nastavení oprávnění
+        // Set permissions
         isAuthorized = isAdmin || isProjectManager;
 
         if (!isAuthorized)
@@ -114,7 +114,7 @@ else
             return;
         }
 
-        // Načtení dostupných klientů pro přihlášeného uživatele (admin vidí všechny, PM vidí pouze přiřazené)
+        // Load available clients for the logged in user (admin sees all, PM sees only assigned ones)
         if (isAdmin)
         {
             availableClients = await DbContext.Clients.ToListAsync();
@@ -126,14 +126,14 @@ else
                 .ToListAsync();
         }
 
-        // Pokud nejsou dostupní žádní klienti, uživatel nemá oprávnění pokračovat
+        // If no clients are available, the user is not allowed to continue
         if (!availableClients.Any())
         {
             isAuthorized = false;
             return;
         }
 
-        // Načtení dostupných členů týmu (kromě Admin a ProjectManager)
+        // Load available team members (except Admin and ProjectManager)
         var allUsers = await DbContext.Users.ToListAsync();
         availableTeamMembers = new List<TeamMember>();
 
