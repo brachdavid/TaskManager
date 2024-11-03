@@ -72,6 +72,10 @@ else
 
         <button type="submit" class="btn btn-primary w-100" disabled="@(Input.Status == Status.Closed)">Save Changes</button>
     </EditForm>
+    @if (isAdmin)
+    {
+        <a href="/confirm-delete/task/@taskId" class="btn btn-danger mt-3">Delete Task</a>
+    }
 }
 
 @code {
@@ -83,29 +87,30 @@ else
     private bool isAuthorized = false;
     private bool canEditAll = false;
     private bool canEditStatus = false;
+    private bool isAdmin = false;
 
     [SupplyParameterFromForm]
     private EditTaskDTO Input { get; set; } = new();
 
     protected override async Task OnInitializedAsync()
     {
-        // Get a logged-in user
+        // Get the logged-in user
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = await UserManager.GetUserAsync(authState.User);
 
-        // Verify that the user is logged-in
+        // Verify if the user is logged in
         if (user == null)
         {
             NavigationManager.NavigateTo("/Account/AccessDenied");
             return;
         }
 
-        // Get user role
+        // Get the roles of the user
         var roles = await UserManager.GetRolesAsync(user);
-        var isAdmin = roles.Contains("Admin");
+        isAdmin = roles.Contains("Admin");
         var isProjectManager = roles.Contains("ProjectManager");
 
-        // Load task from database
+        // Load the task from the database
         task = await DbContext.TaskItems.Include(t => t.Client).FirstOrDefaultAsync(t => t.Id == taskId);
 
         if (task == null)
@@ -114,7 +119,7 @@ else
             return;
         }
 
-        // Verify that the user is an administrator, a project manager assigned to a client, or a user associated with a task
+        // Verify if the user is an administrator, the project manager assigned to the client, or the user assigned to the task
         if (isAdmin)
         {
             isAuthorized = true;
