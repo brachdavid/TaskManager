@@ -26,17 +26,19 @@
             </div>
         </AuthorizeView>
 
+        <AuthorizeView Roles="Admin, ProjectManager">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="new-task">
                 <span class="bi bi-check2-circle d-flex align-items-center" aria-hidden="true"></span> New Task
             </NavLink>
         </div>
+        </AuthorizeView>
 
         <AuthorizeView>
             <Authorized>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="Account/Manage">
-                        <span aria-hidden="true"></span> @context.User.Identity?.Name
+                        <span class="bi bi-person-circle d-flex align-items-center" aria-hidden="true"></span> My Profile
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
@@ -52,12 +54,12 @@
             <NotAuthorized>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="Account/Register">
-                        <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Register
+                        <span class="bi bi-person-plus-fill d-flex align-items-center" aria-hidden="true"></span> Register
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="Account/Login">
-                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Login
+                        <span class="bi bi-person-lock d-flex align-items-center" aria-hidden="true"></span> Login
                     </NavLink>
                 </div>
             </NotAuthorized>
