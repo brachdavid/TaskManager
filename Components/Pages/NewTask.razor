@@ -3,10 +3,15 @@
 @inject TaskManager.Data.ApplicationDbContext DbContext
 @inject NavigationManager NavigationManager
 @inject UserManager<TeamMember> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <h3>Create New Task</h3>
 
-@if (!availableClients.Any())
+@if (!isAuthorized)
+{
+    <p class="text-danger">You do not have permission to access this page.</p>
+}
+else if (!availableClients.Any())
 {
     <p class="text-danger">No clients available. Please create a client before creating a new task.</p>
 }
@@ -78,25 +83,66 @@ else
 @code {
     private List<Client> availableClients = new();
     private List<TeamMember> availableTeamMembers = new();
+    private bool isAuthorized = false;
 
     [SupplyParameterFromForm]
     private TaskDTO Input { get; set; } = new();
 
     protected override async Task OnInitializedAsync()
     {
-        /// Load available clients
-        availableClients = await DbContext.Clients.ToListAsync();
+        // Získání přihlášeného uživatele
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(authState.User);
 
-        // Load users who are not Project Managers or Admins
+        // Ověření, zda je uživatel přihlášen
+        if (user == null)
+        {
+            NavigationManager.NavigateTo("/Account/AccessDenied");
+            return;
+        }
+
+        // Získání rolí uživatele
+        var roles = await UserManager.GetRolesAsync(user);
+        var isAdmin = roles.Contains("Admin");
+        var isProjectManager = roles.Contains("ProjectManager");
+
+        // Nastavení oprávnění
+        isAuthorized = isAdmin || isProjectManager;
+
+        if (!isAuthorized)
+        {
+            return;
+        }
+
+        // Načtení dostupných klientů pro přihlášeného uživatele (admin vidí všechny, PM vidí pouze přiřazené)
+        if (isAdmin)
+        {
+            availableClients = await DbContext.Clients.ToListAsync();
+        }
+        else if (isProjectManager)
+        {
+            availableClients = await DbContext.Clients
+                .Where(c => c.ProjectManagerId == user.Id)
+                .ToListAsync();
+        }
+
+        // Pokud nejsou dostupní žádní klienti, uživatel nemá oprávnění pokračovat
+        if (!availableClients.Any())
+        {
+            isAuthorized = false;
+            return;
+        }
+
+        // Načtení dostupných členů týmu (kromě Admin a ProjectManager)
         var allUsers = await DbContext.Users.ToListAsync();
         availableTeamMembers = new List<TeamMember>();
 
-        foreach (var user in allUsers)
+        foreach (var currentUser in allUsers)
         {
-            var roles = await UserManager.GetRolesAsync(user);
-            if (!roles.Contains("Admin") && !roles.Contains("ProjectManager"))
+            var currentRoles = await UserManager.GetRolesAsync(currentUser);
+            if (!currentRoles.Contains("Admin") && !currentRoles.Contains("ProjectManager"))
             {
-                availableTeamMembers.Add(user);
+                availableTeamMembers.Add(currentUser);
             }
         }
     }
