@@ -84,9 +84,9 @@ else
                     <td>@client.Name</td>
                     <td>@client.Industry.GetDisplayName()</td>
                     <td>@client.ContactPerson</td>
-                    <td>@client.ProjectManager.LastName @client.ProjectManager.FirstName</td>
+                    <td>@(client.ProjectManager?.LastName ?? "Nobody") @(client.ProjectManager?.FirstName ?? "")</td>
                     <td>
-                        <a href="@($"/client-profile/{client.Id}")" class="btn btn-link">View Profile</a>
+                        <a href="@($"/edit-client/{client.Id}")" class="btn btn-link">View Profile</a>
                     </td>
                 </tr>
             }
@@ -127,7 +127,7 @@ else
                     <td>@task.Status</td>
                     <td>@(task.TeamMember != null ? $"{task.TeamMember.FirstName} {task.TeamMember.LastName}" : "Unassigned")</td>
                     <td>
-                        <a href="@($"/task-details/{task.Id}")" class="btn btn-link">Edit Task</a>
+                        <a href="@($"/edit-task/{task.Id}")" class="btn btn-link">Edit Task</a>
                     </td>
                 </tr>
             }

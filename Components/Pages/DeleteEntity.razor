@@ -1,0 +1,41 @@
+﻿@page "/delete/{entity}/{id:int}"
+
+@inject ApplicationDbContext DbContext
+@inject NavigationManager Navigation
+
+<h3>Deleting @entity...</h3>
+
+@code {
+    [Parameter]
+    public string? entity { get; set; }
+
+    [Parameter]
+    public int id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        switch (entity?.ToLower())
+        {
+            case "client":
+                var client = await DbContext.Clients.FindAsync(id);
+                if (client != null)
+                {
+                    DbContext.Clients.Remove(client);
+                }
+                break;
+            case "task":
+                var task = await DbContext.TaskItems.FindAsync(id);
+                if (task != null)
+                {
+                    DbContext.TaskItems.Remove(task);
+                }
+                break;
+            default:
+                Navigation.NavigateTo("/not-found");
+                return;
+        }
+
+        await DbContext.SaveChangesAsync();
+        Navigation.NavigateTo("/");
+    }
+}

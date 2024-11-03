@@ -1,4 +1,4 @@
-﻿@page "/client-profile/{clientId:int}"
+﻿@page "/edit-client/{clientId:int}"
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.EntityFrameworkCore
@@ -94,9 +94,12 @@ else if (client != null)
                 <label for="projectManager">Project Manager</label>
             </div>
         }
-
         <button class="btn btn-primary" type="submit">Save Changes</button>
     </EditForm>
+    @if (isAdmin)
+    {
+        <a href="/confirm-delete/client/@clientId" class="btn btn-danger">Delete Client</a>
+    }
 }
 else
 {
@@ -117,28 +120,28 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // Získání přihlášeného uživatele
+        // Get logged in user
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = await UserManager.GetUserAsync(authState.User);
 
-        // Ověření, zda je uživatel přihlášen
+        // Verify that the user is logged in
         if (user == null)
         {
             Navigation.NavigateTo("/Account/AccessDenied");
             return;
         }
 
-        // Získání klienta z databáze
+        // Get client from database
         client = await DbContext.Clients.Include(c => c.ProjectManager).FirstOrDefaultAsync(c => c.Id == clientId);
 
         if (client == null)
         {
-            // Pokud klient neexistuje, přesměrování na Not Found stránku
+            // If  client doesn't exist, redirect to homepage
             Navigation.NavigateTo("/");
             return;
         }
 
-        // Ověření, zda je uživatel přiřazený projektový manažer pro tohoto klienta nebo je administrátor
+        // Verify that the user is the assigned project manager for this client or is an administrator
         var roles = await UserManager.GetRolesAsync(user);
         isAdmin = roles.Contains("Admin");
 
@@ -146,7 +149,7 @@ else
         {
             isAuthorized = true;
 
-            // Naplnění Input modelu daty klienta pro editaci
+            // Fill Input model with client data for editing
             Input.Name ??= client.Name;
             Input.Description ??= client.Description;
             Input.Industry = Input.Industry == default ? client.Industry : Input.Industry;
@@ -157,11 +160,11 @@ else
         }
         else
         {
-            // Pokud uživatel nemá oprávnění, nastavíme flag a zobrazíme chybovou hlášku
+            // If the user does not have permissions, set the flag and display an error message
             isAuthorized = false;
         }
 
-        // Načtení dostupných projektových manažerů
+        // Load available project managers
         availableManagers = await DbContext.Users
             .Where(u => u.WorkPosition == WorkPosition.ProjectManager)
             .ToListAsync();
@@ -169,23 +172,23 @@ else
 
     private async Task OnValidSubmitAsync()
     {
-        // Získání přihlášeného uživatele
+        // Get logged in user
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = await UserManager.GetUserAsync(authState.User);
 
-        // Ověření, zda je uživatel přihlášen
+        // Verify that the user is logged in
         if (user == null)
         {
             Navigation.NavigateTo("/Account/AccessDenied");
             return;
         }
 
-        // Získání klienta z databáze
+        // Get client from database
         client = await DbContext.Clients.Include(c => c.ProjectManager).FirstOrDefaultAsync(c => c.Id == clientId);
 
         if (client == null)
         {
-            // Pokud klient neexistuje, přesměrování na Not Found stránku
+            // If the client doesn't exist, redirect to homepage
             Navigation.NavigateTo("/");
             return;
         }
@@ -213,6 +216,16 @@ else
                 await DbContext.SaveChangesAsync();
                 Navigation.NavigateTo("/");
             }
+        }
+    }
+
+    private async Task OnDeleteClientAsync()
+    {
+        if (client != null && isAdmin)
+        {
+            DbContext.Clients.Remove(client);
+            await DbContext.SaveChangesAsync();
+            Navigation.NavigateTo("/");
         }
     }
 
