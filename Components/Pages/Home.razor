@@ -86,7 +86,7 @@ else
                     <td>@client.ContactPerson</td>
                     <td>@(client.ProjectManager?.LastName ?? "Nobody") @(client.ProjectManager?.FirstName ?? "")</td>
                     <td>
-                        <a href="@($"/edit-client/{client.Id}")" class="btn btn-link">View Profile</a>
+                        <a href="@($"/client/{client.Id}")" class="btn btn-link">View Profile</a>
                     </td>
                 </tr>
             }
@@ -127,7 +127,7 @@ else
                     <td>@task.Status</td>
                     <td>@(task.TeamMember != null ? $"{task.TeamMember.FirstName} {task.TeamMember.LastName}" : "Unassigned")</td>
                     <td>
-                        <a href="@($"/edit-task/{task.Id}")" class="btn btn-link">Edit Task</a>
+                        <a href="@($"/task/{task.Id}")" class="btn btn-link">Task Profile</a>
                     </td>
                 </tr>
             }

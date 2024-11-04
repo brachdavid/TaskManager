@@ -1,0 +1,118 @@
+﻿@page "/task/{taskId:int}"
+
+@using Microsoft.EntityFrameworkCore
+@using TaskManager.Models
+@inject ApplicationDbContext DbContext
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<TeamMember> UserManager
+
+@if (task == null)
+{
+    <p>Loading task data...</p>
+}
+else
+{
+    <div class="card my-5 mx-auto" style="max-width: 600px;">
+        <div class="card-header text-white bg-primary">
+            <h3 class="card-title mb-0">@task.Title</h3>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <strong>Description:</strong>
+                <p class="mb-0">@task.Description</p>
+            </div>
+            <div class="mb-3">
+                <strong>Due Date:</strong>
+                <p class="mb-0">@task.DueDate.ToShortDateString()</p>
+            </div>
+            <div class="mb-3">
+                <strong>Status:</strong>
+                <p class="mb-0">@task.Status.GetDisplayName()</p>
+            </div>
+            <div class="mb-3">
+                <strong>Assigned Client:</strong>
+                <p class="mb-0">@task.Client?.Name</p>
+            </div>
+            <div class="mb-3">
+                <strong>Assigned Team Member:</strong>
+                @if (task.TeamMember != null)
+                {
+                    <p class="mb-0">@task.TeamMember.FirstName @task.TeamMember.LastName</p>
+                }
+                else
+                {
+                    <p class="mb-0">No team member assigned</p>
+                }
+            </div>
+            <div class="mb-3">
+                <strong>Start Date:</strong>
+                <p class="mb-0">@task.StartDate.ToShortDateString()</p>
+            </div>
+            @if (task.CompletedDate != null)
+            {
+                <div class="mb-3">
+                    <strong>Closed Date:</strong>
+                    <p class="mb-0">@task.CompletedDate?.ToShortDateString()</p>
+                </div>
+            }
+
+            <!-- Action Buttons with links -->
+            <div class="d-flex justify-content-between mt-4">
+                @if (canEditTask)
+                {
+                    <a href="/edit-task/@taskId" class="btn btn-warning">
+                        <span class="bi bi-pencil-square me-1"></span> Edit Task
+                    </a>
+                }
+                @if (isAdmin)
+                {
+                    <a href="/confirm-delete/task/@taskId" class="btn btn-danger">
+                        <span class="bi bi-trash-fill me-1"></span> Delete Task
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int taskId { get; set; }
+
+    private TaskItem? task;
+    private bool isAdmin = false;
+    private bool canEditTask = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Načtení úkolu z databáze
+        task = await DbContext.TaskItems.Include(t => t.Client).Include(t => t.TeamMember).FirstOrDefaultAsync(t => t.Id == taskId);
+        if (task == null)
+        {
+            // Přesměrování na stránku "not found" pokud úkol neexistuje
+            Navigation.NavigateTo("/not-found");
+            return;
+        }
+
+        // Získání přihlášeného uživatele
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(authState.User);
+
+        // Pokud uživatel není přihlášený, necháme zobrazit detaily úkolu, ale bez oprávnění na úpravy nebo mazání
+        if (user == null)
+        {
+            return;
+        }
+
+        // Získání rolí uživatele
+        var roles = await UserManager.GetRolesAsync(user);
+        isAdmin = roles.Contains("Admin");
+
+        // Ověření, zda je uživatel projektovým manažerem přiřazeným ke klientovi nebo je přiřazený uživatel k úkolu
+        if (isAdmin || (task.Client != null && task.Client.ProjectManagerId == user.Id) || task.TeamMemberId == user.Id)
+        {
+            canEditTask = true;
+        }
+    }
+}

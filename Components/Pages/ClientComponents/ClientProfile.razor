@@ -1,0 +1,112 @@
+﻿@page "/client/{clientId:int}"
+
+@inject ApplicationDbContext DbContext
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<TeamMember> UserManager
+
+@if (client == null)
+{
+    <p>Loading client data...</p>
+}
+else
+{
+    <div class="card my-5 mx-auto" style="max-width: 600px;">
+        <div class="card-header text-white bg-primary">
+            <h3 class="card-title mb-0">@client.Name</h3>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <strong>Description:</strong>
+                <p class="mb-0">@client.Description</p>
+            </div>
+            <div class="mb-3">
+                <strong>Industry:</strong>
+                <p class="mb-0">@client.Industry.GetDisplayName()</p>
+            </div>
+            <div class="mb-3">
+                <strong>Contact Person:</strong>
+                <p class="mb-0">@client.ContactPerson</p>
+            </div>
+            <div class="mb-3">
+                <strong>Contact Email:</strong>
+                <p class="mb-0">@client.ContactEmail</p>
+            </div>
+            <div class="mb-3">
+                <strong>Contact Phone:</strong>
+                <p class="mb-0">@client.ContactPhone</p>
+            </div>
+            <div class="mb-3">
+                <strong>Start Date of Cooperation:</strong>
+                <p class="mb-0">@client.StartDate.ToShortDateString()</p>
+            </div>
+            @if (client.ProjectManager != null)
+            {
+                <div class="mb-3">
+                    <strong>Project Manager:</strong>
+                    <p class="mb-0">@client.ProjectManager.FirstName @client.ProjectManager.LastName</p>
+                </div>
+            }
+
+            <!-- Action Buttons with links -->
+            @if (isAdmin || canEditClient)
+            {
+                <div class="d-flex justify-content-between mt-4">
+                    @if (canEditClient)
+                    {
+                        <a href="/edit-client/@clientId" class="btn btn-warning">
+                            <span class="bi bi-pencil-square me-1"></span> Edit Client
+                        </a>
+                    }
+                    @if (isAdmin)
+                    {
+                        <a href="/confirm-delete/client/@clientId" class="btn btn-danger">
+                            <span class="bi bi-trash-fill me-1"></span> Delete Client
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int clientId { get; set; }
+
+    private Client? client;
+    private bool isAdmin = false;
+    private bool canEditClient = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Načtení klienta z databáze
+        client = await DbContext.Clients.Include(c => c.ProjectManager).FirstOrDefaultAsync(c => c.Id == clientId);
+        if (client == null)
+        {
+            // Přesměrování na stránku "not found" pokud klient neexistuje
+            Navigation.NavigateTo("/not-found");
+            return;
+        }
+
+        // Získání přihlášeného uživatele
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(authState.User);
+
+        // Pokud uživatel není přihlášený, necháme profil klienta zobrazit, ale bez oprávnění na úpravy
+        if (user == null)
+        {
+            return;
+        }
+
+        // Získání rolí uživatele
+        var roles = await UserManager.GetRolesAsync(user);
+        isAdmin = roles.Contains("Admin");
+
+        // Ověření, zda je uživatel projektovým manažerem přiřazeným ke klientovi
+        if (client.ProjectManagerId == user.Id || isAdmin)
+        {
+            canEditClient = true;
+        }
+    }
+}

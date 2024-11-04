@@ -2,6 +2,7 @@
 
 @inject ApplicationDbContext DbContext
 @inject NavigationManager Navigation
+@attribute [Authorize(Roles = "Admin")]
 
 <h3>Deleting @entity...</h3>
 

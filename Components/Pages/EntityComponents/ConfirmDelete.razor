@@ -1,4 +1,5 @@
 ﻿@page "/confirm-delete/{entity}/{id:int}"
+@attribute [Authorize(Roles = "Admin")]
 
 @inject NavigationManager Navigation
 
