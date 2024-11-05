@@ -1,11 +1,12 @@
 ﻿@page "/task/{taskId:int}"
 
-@using Microsoft.EntityFrameworkCore
-@using TaskManager.Models
 @inject ApplicationDbContext DbContext
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<TeamMember> UserManager
+
+<PageTitle>@Title</PageTitle>
+<SectionContent SectionName="page-title">@Title</SectionContent>
 
 @if (task == null)
 {
@@ -79,6 +80,8 @@ else
 @code {
     [Parameter]
     public int taskId { get; set; }
+
+    public string Title { get; private set; } = "Task profile";
 
     private TaskItem? task;
     private bool isAdmin = false;

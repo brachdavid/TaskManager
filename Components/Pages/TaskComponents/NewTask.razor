@@ -5,7 +5,8 @@
 @inject UserManager<TeamMember> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<h3>Create New Task</h3>
+<PageTitle>@Title</PageTitle>
+<SectionContent SectionName="page-title">@Title</SectionContent>
 
 @if (!isAuthorized)
 {
@@ -21,8 +22,8 @@ else if (!availableTeamMembers.Any())
 }
 else
 {
-    <div class="row">
-        <div class="col-md-6">
+    <div class="row d-flex justify-content-center">
+        <div class="col-lg-8">
             <EditForm Model="Input" OnValidSubmit="AddTask" method="post" FormName="newTask">
                 <DataAnnotationsValidator />
                 <ValidationSummary class="text-danger" />
@@ -49,38 +50,41 @@ else
                 </div>
 
                 <!-- Client Selection -->
-                <label>Client:</label>
-                <div class="form-group">
+                <div class="form-floating mb-3">
                     <InputSelect @bind-Value="Input.ClientId" class="form-control">
-                        <option value="">Select Client</option>
                         @foreach (var client in availableClients)
                         {
-                            <option value="@client.Id">@client.Name</option>
+                            <option value="@client.Id">@client.Name - @client.Industry</option>
                         }
                     </InputSelect>
+                    <label for="client">Select client</label>
                     <ValidationMessage For="() => Input.ClientId" class="text-danger" />
                 </div>
 
                 <!-- Team Member Assignment -->
-                <label>Assign to Team Member:</label>
-                <div class="form-group">
+                <div class="form-floating mb-3">
                     <InputSelect @bind-Value="Input.TeamMemberId" class="form-control">
-                        <option value="">Select Team Member</option>
                         @foreach (var member in availableTeamMembers)
                         {
-                            <option value="@member.Id">@member.FirstName @member.LastName</option>
+                            <option value="@member.Id">@member.FirstName @member.LastName - @member.WorkPosition (@member.SkillLevel)</option>
                         }
                     </InputSelect>
+                    <label for="teamMember">Select team member</label>
                     <ValidationMessage For="() => Input.TeamMemberId" class="text-danger" />
                 </div>
 
-                <button type="submit" class="btn btn-primary w-100">Create Task</button>
+                <div class="d-flex justify-content-center">
+                    <button type="submit" class="btn btn-primary">Create Task</button>
+                </div>
+
             </EditForm>
         </div>
     </div>
 }
 
 @code {
+    public string Title { get; private set; } = "Add new task";
+
     private List<Client> availableClients = new();
     private List<TeamMember> availableTeamMembers = new();
     private bool isAuthorized = false;

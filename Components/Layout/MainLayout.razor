@@ -1,4 +1,5 @@
-﻿@inherits LayoutComponentBase
+﻿@using Microsoft.AspNetCore.Components.Sections
+@inherits LayoutComponentBase
 
 <div class="page">
     <div class="sidebar">
@@ -6,6 +7,10 @@
     </div>
 
     <main>
+        <div class="top-row px-4 h1 justify-content-center">
+            <SectionOutlet SectionName="page-title"/>
+        </div>
+
         <article class="content px-4">
             @Body
         </article>

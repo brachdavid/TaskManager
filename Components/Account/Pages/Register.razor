@@ -8,9 +8,8 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Register</PageTitle>
-
-<h1>Register</h1>
+<PageTitle>@Title</PageTitle>
+<SectionContent SectionName="page-title">@Title</SectionContent>
 
 <div class="row">
     <div class="col-md-4">
@@ -108,6 +107,8 @@
 
 @code {
     private IEnumerable<IdentityError>? identityErrors;
+
+    public string Title { get; private set; } = "Register";
 
     [SupplyParameterFromForm]
     private RegisterDTO Input { get; set; } = new();

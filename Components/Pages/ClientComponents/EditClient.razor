@@ -5,9 +5,8 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<TeamMember> UserManager
 
-<PageTitle>Client Profile</PageTitle>
-
-<h3>Client Profile Details</h3>
+<PageTitle>@Title</PageTitle>
+<SectionContent SectionName="page-title">@Title</SectionContent>
 
 @if (isAuthorized == false)
 {
@@ -15,87 +14,97 @@
 }
 else if (client != null)
 {
-    <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" method="post" FormName="clientProfile">
-        <DataAnnotationsValidator />
-        <ValidationSummary class="text-danger" />
+    <div class="row d-flex justify-content-center">
+        <div class="col-lg-8">
+            <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" method="post" FormName="clientProfile">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
 
-        <!-- Client (or company) name  -->
-        @if (isAdmin)
-        {
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Name" class="form-control" placeholder="Client Name" />
-                <ValidationMessage For="() => Input.Name" class="text-danger" />
-                <label for="name">Client Name</label>
-            </div>
+                <!-- Client (or company) name  -->
+                @if (isAdmin)
+                {
+                    <div class="form-floating mb-3">
+                        <InputText @bind-Value="Input.Name" class="form-control" placeholder="Client Name" />
+                        <ValidationMessage For="() => Input.Name" class="text-danger" />
+                        <label for="name">Client Name</label>
+                    </div>
 
-            <!-- Description -->
-            <div class="form-floating mb-3">
-                <InputTextArea @bind-Value="Input.Description" class="form-control" placeholder="Description" />
-                <ValidationMessage For="() => Input.Description" class="text-danger" />
-                <label for="description">Description</label>
-            </div>
+                    <!-- Description -->
+                    <div class="form-floating mb-3">
+                        <InputTextArea @bind-Value="Input.Description" class="form-control" placeholder="Description" />
+                        <ValidationMessage For="() => Input.Description" class="text-danger" />
+                        <label for="description">Description</label>
+                    </div>
 
-            <!-- Industry -->
-            <div class="form-floating mb-3">
-                <InputSelect @bind-Value="Input.Industry" class="form-control">
-                    @foreach (var industry in Enum.GetValues<Industry>())
-                    {
-                        <option value="@industry">@industry.GetDisplayName()</option>
-                    }
-                </InputSelect>
-                <ValidationMessage For="() => Input.Industry" class="text-danger" />
-                <label for="industry">Industry</label>
-            </div>
-        }
+                    <!-- Industry -->
+                    <div class="form-floating mb-3">
+                        <InputSelect @bind-Value="Input.Industry" class="form-control">
+                            @foreach (var industry in Enum.GetValues<Industry>())
+                            {
+                                <option value="@industry">@industry.GetDisplayName()</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="() => Input.Industry" class="text-danger" />
+                        <label for="industry">Industry</label>
+                    </div>
+                }
 
-        <!-- Start date (readonly) -->
-        <div class="form-floating mb-3">
-            <input class="form-control" id="startDate" value="@client.StartDate.ToShortDateString()" readonly />
-            <label for="startDate">Start Date</label>
+                <!-- Start date (readonly) -->
+                <div class="form-floating mb-3">
+                    <input class="form-control" id="startDate" value="@client.StartDate.ToShortDateString()" readonly />
+                    <label for="startDate">Start Date</label>
+                </div>
+
+                <!-- Contact Person -->
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.ContactPerson" class="form-control" placeholder="Contact Person" />
+                    <ValidationMessage For="() => Input.ContactPerson" class="text-danger" />
+                    <label for="contactPerson">Contact Person</label>
+                </div>
+
+                <!-- Contact e-mail -->
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.ContactEmail" class="form-control" placeholder="Contact Email" />
+                    <ValidationMessage For="() => Input.ContactEmail" class="text-danger" />
+                    <label for="contactEmail">Contact Email</label>
+                </div>
+
+                <!-- Contact phone number -->
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.ContactPhone" class="form-control" placeholder="Contact Phone" />
+                    <ValidationMessage For="() => Input.ContactPhone" class="text-danger" />
+                    <label for="contactPhone">Contact Phone</label>
+                </div>
+
+                <!-- Project Manager Selection -->
+                @if (isAdmin)
+                {
+                    <div class="form-floating mb-3">
+                        <InputSelect @bind-Value="Input.ProjectManagerId" class="form-control">
+                            <option value="">Select Project Manager</option>
+                            @foreach (var manager in availableManagers)
+                            {
+                                <option value="@manager.Id">@manager.FirstName @manager.LastName</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="() => Input.ProjectManagerId" class="text-danger" />
+                        <label for="projectManager">Project Manager</label>
+                    </div>
+                }
+
+                <div class="d-flex justify-content-center">
+                    <button class="btn btn-primary" type="submit">Save Changes</button>
+                </div>
+                <div class="d-flex justify-content-center">
+                @if (isAdmin)
+                {
+                    <a href="/confirm-delete/client/@clientId" class="btn btn-danger mt-3">Delete Client</a>
+                }
+                </div>
+            </EditForm>
+
         </div>
-
-        <!-- Contact Person -->
-        <div class="form-floating mb-3">
-            <InputText @bind-Value="Input.ContactPerson" class="form-control" placeholder="Contact Person" />
-            <ValidationMessage For="() => Input.ContactPerson" class="text-danger" />
-            <label for="contactPerson">Contact Person</label>
-        </div>
-
-        <!-- Contact e-mail -->
-        <div class="form-floating mb-3">
-            <InputText @bind-Value="Input.ContactEmail" class="form-control" placeholder="Contact Email" />
-            <ValidationMessage For="() => Input.ContactEmail" class="text-danger" />
-            <label for="contactEmail">Contact Email</label>
-        </div>
-
-        <!-- Contact phone number -->
-        <div class="form-floating mb-3">
-            <InputText @bind-Value="Input.ContactPhone" class="form-control" placeholder="Contact Phone" />
-            <ValidationMessage For="() => Input.ContactPhone" class="text-danger" />
-            <label for="contactPhone">Contact Phone</label>
-        </div>
-
-        <!-- Project Manager Selection -->
-        @if (isAdmin)
-        {
-            <div class="form-floating mb-3">
-                <InputSelect @bind-Value="Input.ProjectManagerId" class="form-control">
-                    <option value="">Select Project Manager</option>
-                    @foreach (var manager in availableManagers)
-                    {
-                        <option value="@manager.Id">@manager.FirstName @manager.LastName</option>
-                    }
-                </InputSelect>
-                <ValidationMessage For="() => Input.ProjectManagerId" class="text-danger" />
-                <label for="projectManager">Project Manager</label>
-            </div>
-        }
-        <button class="btn btn-primary" type="submit">Save Changes</button>
-    </EditForm>
-    @if (isAdmin)
-    {
-        <a href="/confirm-delete/client/@clientId" class="btn btn-danger mt-3">Delete Client</a>
-    }
+    </div>
 }
 else
 {
@@ -105,6 +114,8 @@ else
 @code {
     [Parameter]
     public int clientId { get; set; }
+
+    public string Title { get; private set; } = "Edit client";
 
     private Client? client;
     private List<TeamMember> availableManagers = new();

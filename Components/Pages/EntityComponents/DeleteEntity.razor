@@ -4,7 +4,8 @@
 @inject NavigationManager Navigation
 @attribute [Authorize(Roles = "Admin")]
 
-<h3>Deleting @entity...</h3>
+<PageTitle>@Title</PageTitle>
+<SectionContent SectionName="page-title">@Title + @entity</SectionContent>
 
 @code {
     [Parameter]
@@ -12,6 +13,8 @@
 
     [Parameter]
     public int id { get; set; }
+
+    public string Title { get; private set; } = "Deleting ";
 
     protected override async Task OnInitializedAsync()
     {

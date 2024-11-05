@@ -5,7 +5,8 @@
 @inject UserManager<TeamMember> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<h3>Edit Task</h3>
+<PageTitle>@Title</PageTitle>
+<SectionContent SectionName="page-title">@Title</SectionContent>
 
 @if (!isAuthorized)
 {
@@ -17,70 +18,82 @@ else if (task == null)
 }
 else
 {
-    <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" method="post" FormName="editTask">
-        <DataAnnotationsValidator />
-        <ValidationSummary class="text-danger" />
+    <div class="row d-flex justify-content-center">
+        <div class="col-lg-8">
+            <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" method="post" FormName="editTask">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
 
-        <!-- Task Title -->
-        <div class="form-floating mb-3">
-            <InputText @bind-Value="Input.Title" class="form-control" placeholder="Task Title" readonly="@(Input.Status == Status.Closed || !canEditAll)" />
-            <label for="title">Task Title</label>
-            <ValidationMessage For="() => Input.Title" class="text-danger" />
-        </div>
+                <!-- Task Title -->
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.Title" class="form-control" placeholder="Task Title" readonly="@(Input.Status == Status.Closed || !canEditAll)" />
+                    <label for="title">Task Title</label>
+                    <ValidationMessage For="() => Input.Title" class="text-danger" />
+                </div>
 
-        <!-- Task Description -->
-        <div class="form-floating mb-3">
-            <InputTextArea @bind-Value="Input.Description" class="form-control" placeholder="Task Description" readonly="@(Input.Status == Status.Closed || !canEditAll)" />
-            <label for="description">Description</label>
-            <ValidationMessage For="() => Input.Description" class="text-danger" />
-        </div>
+                <!-- Task Description -->
+                <div class="form-floating mb-3">
+                    <InputTextArea @bind-Value="Input.Description" class="form-control" placeholder="Task Description" readonly="@(Input.Status == Status.Closed || !canEditAll)" />
+                    <label for="description">Description</label>
+                    <ValidationMessage For="() => Input.Description" class="text-danger" />
+                </div>
 
-        <!-- Due Date -->
-        <div class="form-floating mb-3">
-            <InputDate @bind-Value="Input.DueDate" class="form-control" readonly="@(Input.Status == Status.Closed || !canEditAll)" />
-            <label for="dueDate">Due Date</label>
-            <ValidationMessage For="() => Input.DueDate" class="text-danger" />
-        </div>
+                <!-- Due Date -->
+                <div class="form-floating mb-3">
+                    <InputDate @bind-Value="Input.DueDate" class="form-control" readonly="@(Input.Status == Status.Closed || !canEditAll)" />
+                    <label for="dueDate">Due Date</label>
+                    <ValidationMessage For="() => Input.DueDate" class="text-danger" />
+                </div>
 
-        <!-- Status (Only Assigned User Can Change to Completed) -->
-        <div class="form-floating mb-3">
-            <InputSelect @bind-Value="Input.Status" class="form-control" disabled="@(!canEditStatus || Input.Status == Status.Closed)">
-                @foreach (var status in Enum.GetValues<Status>())
+                <!-- Status (Only Assigned User Can Change to Completed) -->
+                <div class="form-floating mb-3">
+                    <InputSelect @bind-Value="Input.Status" class="form-control" disabled="@(!canEditStatus || Input.Status == Status.Closed)">
+                        @foreach (var status in Enum.GetValues<Status>())
+                        {
+                            <option value="@status">@status.GetDisplayName()</option>
+                        }
+                    </InputSelect>
+                    <label for="status">Status</label>
+                    <ValidationMessage For="() => Input.Status" class="text-danger" />
+                </div>
+
+                <!-- Team Member Selection (Admin and Project Manager Only) -->
+                @if (canEditAll && Input.Status != Status.Closed)
                 {
-                    <option value="@status">@status.GetDisplayName()</option>
+                    <div class="form-floating mb-3">
+                        <InputSelect @bind-Value="Input.TeamMemberId" class="form-control">
+                            <option value="">Select Team Member</option>
+                            @foreach (var member in availableTeamMembers)
+                            {
+                                <option value="@member.Id">@member.FirstName @member.LastName</option>
+                            }
+                        </InputSelect>
+                        <label for="teamMember">Assigned Team Member</label>
+                        <ValidationMessage For="() => Input.TeamMemberId" class="text-danger" />
+                    </div>
                 }
-            </InputSelect>
-            <label for="status">Status</label>
-            <ValidationMessage For="() => Input.Status" class="text-danger" />
-        </div>
 
-        <!-- Team Member Selection (Admin and Project Manager Only) -->
-        @if (canEditAll && Input.Status != Status.Closed)
-        {
-            <div class="form-floating mb-3">
-                <InputSelect @bind-Value="Input.TeamMemberId" class="form-control">
-                    <option value="">Select Team Member</option>
-                    @foreach (var member in availableTeamMembers)
+                <div class="d-flex justify-content-center">
+                    <button type="submit" class="btn btn-primary" disabled="@(Input.Status == Status.Closed)">Save Changes</button>
+                </div>
+
+                <div class="d-flex justify-content-center">
+                    @if (isAdmin)
                     {
-                        <option value="@member.Id">@member.FirstName @member.LastName</option>
+                        <a href="/confirm-delete/task/@taskId" class="btn btn-danger mt-3">Delete Task</a>
                     }
-                </InputSelect>
-                <label for="teamMember">Assigned Team Member</label>
-                <ValidationMessage For="() => Input.TeamMemberId" class="text-danger" />
-            </div>
-        }
+                </div>
 
-        <button type="submit" class="btn btn-primary" disabled="@(Input.Status == Status.Closed)">Save Changes</button>
-    </EditForm>
-    @if (isAdmin)
-    {
-        <a href="/confirm-delete/task/@taskId" class="btn btn-danger mt-3">Delete Task</a>
-    }
+            </EditForm>
+        </div>
+    </div>
 }
 
 @code {
     [Parameter]
     public int taskId { get; set; }
+
+    public string Title { get; private set; } = "Edit task";
 
     private TaskItem? task;
     private List<TeamMember> availableTeamMembers = new();

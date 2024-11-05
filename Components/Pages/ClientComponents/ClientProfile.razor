@@ -5,6 +5,9 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<TeamMember> UserManager
 
+<PageTitle>@Title</PageTitle>
+<SectionContent SectionName="page-title">@Title</SectionContent>
+
 @if (client == null)
 {
     <p>Loading client data...</p>
@@ -73,6 +76,8 @@ else
 @code {
     [Parameter]
     public int clientId { get; set; }
+
+    public string Title { get; private set; } = "Client profile";
 
     private Client? client;
     private bool isAdmin = false;

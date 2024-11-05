@@ -3,6 +3,9 @@
 @inject UserManager<TeamMember> UserManager
 @inject TaskManager.Data.ApplicationDbContext DbContext
 
+<PageTitle>@Title</PageTitle>
+<SectionContent SectionName="page-title">@Title</SectionContent>
+
 <h3>Registered Users and Their Roles</h3>
 
 @if (users == null)
@@ -173,6 +176,8 @@ else
 }
 
 @code {
+    public string Title { get; private set; } = "Testing homepage";
+
     private List<TeamMember>? users;
     private Dictionary<string, List<string>> userRoles = new();
     private List<Client>? clients;

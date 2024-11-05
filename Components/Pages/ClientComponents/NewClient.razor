@@ -4,7 +4,8 @@
 @inject NavigationManager NavigationManager
 @attribute [Authorize(Roles = "Admin")]
 
-<h3>Create New Client</h3>
+<PageTitle>@Title</PageTitle>
+<SectionContent SectionName="page-title">@Title</SectionContent>
 
 @if (!availableManagers.Any())
 {
@@ -12,79 +13,83 @@
 }
 else
 {
-<div class="row">
-    <div class="col-md-6">
-        <EditForm Model="Input" OnValidSubmit="AddClient" method="post" FormName="newClient">
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" />
+    <div class="row d-flex justify-content-center">
+        <div class="col-lg-8">
+            <EditForm Model="Input" OnValidSubmit="AddClient" method="post" FormName="newClient">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
 
-            <!-- Client (or company) name -->
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Name" class="form-control" placeholder="Client Name" />
-                <label for="name">Client Name</label>
-                <ValidationMessage For="() => Input.Name" class="text-danger" />
-            </div>
+                <!-- Client (or company) name -->
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.Name" class="form-control" placeholder="Client Name" />
+                    <label for="name">Client Name</label>
+                    <ValidationMessage For="() => Input.Name" class="text-danger" />
+                </div>
 
-            <!-- Description -->
-            <div class="form-floating mb-3">
-                <InputTextArea @bind-Value="Input.Description" class="form-control" placeholder="Description" />
-                <label for="description">Description</label>
-                <ValidationMessage For="() => Input.Description" class="text-danger" />
-            </div>
+                <!-- Description -->
+                <div class="form-floating mb-3">
+                    <InputTextArea @bind-Value="Input.Description" class="form-control" placeholder="Description" />
+                    <label for="description">Description</label>
+                    <ValidationMessage For="() => Input.Description" class="text-danger" />
+                </div>
 
-            <!-- Industry -->
-            <div class="form-floating mb-3">
-                <InputSelect @bind-Value="Input.Industry" class="form-control">
-                    @foreach (var industry in Enum.GetValues<Industry>())
-                    {
-                        <option value="@industry">@industry.GetDisplayName()</option>
-                    }
-                </InputSelect>
-                <label for="industry">Industry</label>
-                <ValidationMessage For="() => Input.Industry" class="text-danger" />
-            </div>
+                <!-- Industry -->
+                <div class="form-floating mb-3">
+                    <InputSelect @bind-Value="Input.Industry" class="form-control">
+                        @foreach (var industry in Enum.GetValues<Industry>())
+                        {
+                            <option value="@industry">@industry.GetDisplayName()</option>
+                        }
+                    </InputSelect>
+                    <label for="industry">Select industry</label>
+                    <ValidationMessage For="() => Input.Industry" class="text-danger" />
+                </div>
 
-            <!-- Contact person -->
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.ContactPerson" class="form-control" placeholder="Contact Person" />
-                <label for="contactPerson">Contact Person</label>
-                <ValidationMessage For="() => Input.ContactPerson" class="text-danger" />
-            </div>
+                <!-- Contact person -->
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.ContactPerson" class="form-control" placeholder="Contact Person" />
+                    <label for="contactPerson">Contact Person</label>
+                    <ValidationMessage For="() => Input.ContactPerson" class="text-danger" />
+                </div>
 
-            <!-- Contact e-mail -->
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.ContactEmail" class="form-control" placeholder="Contact Email" />
-                <label for="contactEmail">Contact Email</label>
-                <ValidationMessage For="() => Input.ContactEmail" class="text-danger" />
-            </div>
+                <!-- Contact e-mail -->
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.ContactEmail" class="form-control" placeholder="Contact Email" />
+                    <label for="contactEmail">Contact Email</label>
+                    <ValidationMessage For="() => Input.ContactEmail" class="text-danger" />
+                </div>
 
-            <!-- Contact phone -->
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.ContactPhone" class="form-control" placeholder="Contact Phone" />
-                <label for="contactPhone">Contact Phone</label>
-                <ValidationMessage For="() => Input.ContactPhone" class="text-danger" />
-            </div>
+                <!-- Contact phone -->
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.ContactPhone" class="form-control" placeholder="Contact Phone" />
+                    <label for="contactPhone">Contact Phone</label>
+                    <ValidationMessage For="() => Input.ContactPhone" class="text-danger" />
+                </div>
 
-            <!-- Project Manager -->
-            <label>Project Manager:</label>
-            <div class="form-group">
-                <InputSelect @bind-Value="Input.ProjectManagerId" class="form-control">
-                    <option value="">Select Project Manager</option>
-                    @foreach (var user in availableManagers)
-                    {
-                        <option value="@user.Id">@user.FirstName @user.LastName - @user.SkillLevel</option>
-                    }
-                </InputSelect>
-                <ValidationMessage For="() => Input.ProjectManagerId" class="text-danger" />
-            </div>
+                <!-- Project Manager -->
+                <div class="form-floating mb-3">
+                    <InputSelect @bind-Value="Input.ProjectManagerId" class="form-control">
+                        @foreach (var user in availableManagers)
+                        {
+                            <option value="@user.Id">@user.FirstName @user.LastName - @user.BirthDate.ToShortDateString()</option>
+                        }
+                    </InputSelect>
+                    <label for="projectManager">Select project manager</label>
+                    <ValidationMessage For="() => Input.ProjectManagerId" class="text-danger" />
+                </div>
 
-            <button type="submit" class="btn btn-primary w-100">Create Client</button>
-        </EditForm>
+                <div class="d-flex justify-content-center">
+                    <button type="submit" class="btn btn-primary">Create Client</button>
+                </div>
+
+            </EditForm>
+        </div>
     </div>
-</div>
 }
 
 @code {
+    public string Title { get; private set; } = "Add new client";
+
     private List<TeamMember> availableManagers = new List<TeamMember>();
 
     [SupplyParameterFromForm]
