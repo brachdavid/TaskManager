@@ -1,0 +1,116 @@
+﻿@page "/our-team"
+
+@inject ApplicationDbContext DbContext
+@inject UserManager<TeamMember> UserManager
+
+<PageTitle>@Title</PageTitle>
+<SectionContent SectionName="page-title">@Title</SectionContent>
+
+@if (isLoading)
+{
+    <p>Loading team members...</p>
+}
+else if (!admins.Any() && !projectManagers.Any() && !others.Any())
+{
+    <p class="text-center text-muted">No team members are available.</p>
+}
+else
+{
+    <div class="container mt-4">
+        <!-- Administrators Section -->
+        @if (admins.Any())
+        {
+            <h4 class="text-center mb-4">CEO</h4>
+            <div class="row justify-content-center">
+                @foreach (var member in admins)
+                {
+                    <div class="col-12 col-sm-6 col-lg-3 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h5 class="card-title mb-3">@member.FirstName @member.LastName</h5>
+                                <p class="card-text"><strong>Position:</strong> Administrator</p>
+                                <p class="card-text"><strong>Skill Level:</strong> @member.SkillLevel.GetDisplayName()</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Project Managers Section -->
+        @if (projectManagers.Any())
+        {
+            <h4 class="text-center mb-4">Leadership</h4>
+            <div class="row justify-content-center">
+                @foreach (var member in projectManagers)
+                {
+                    <div class="col-12 col-sm-6 col-lg-3 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h5 class="card-title mb-3">@member.FirstName @member.LastName</h5>
+                                <p class="card-text"><strong>Position:</strong> Project Manager</p>
+                                <p class="card-text"><strong>Skill Level:</strong> @member.SkillLevel.GetDisplayName()</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Others Section -->
+        @if (others.Any())
+        {
+            <h4 class="text-center mb-4">Others</h4>
+            <div class="row justify-content-center">
+                @foreach (var member in others)
+                {
+                    <div class="col-12 col-sm-6 col-lg-3 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h5 class="card-title mb-3">@member.FirstName @member.LastName</h5>
+                                <p class="card-text"><strong>Position:</strong> @member.WorkPosition.GetDisplayName()</p>
+                                <p class="card-text"><strong>Skill Level:</strong> @member.SkillLevel.GetDisplayName()</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    public string Title { get; private set; } = "Our Team";
+
+    private List<TeamMember> admins = new();
+    private List<TeamMember> projectManagers = new();
+    private List<TeamMember> others = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load all registered team members from the database
+        var allUsers = await DbContext.Users.ToListAsync();
+
+        // Categorize users by role
+        foreach (var user in allUsers)
+        {
+            var roles = await UserManager.GetRolesAsync(user);
+
+            if (roles.Contains("Admin"))
+            {
+                admins.Add(user);
+            }
+            else if (roles.Contains("ProjectManager"))
+            {
+                projectManagers.Add(user);
+            }
+            else if (roles.Contains("Others"))
+            {
+                others.Add(user);
+            }
+        }
+
+        isLoading = false;
+    }
+}

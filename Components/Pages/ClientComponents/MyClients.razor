@@ -23,22 +23,28 @@ else if (!clients.Any())
 }
 else
 {
-    <div class="list-group my-4">
-        @foreach (var client in clients)
-        {
-            <div class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <h5 class="mb-1">@client.Name</h5>
-                    <p class="mb-1">Industry: @client.Industry.GetDisplayName()</p>
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            @foreach (var client in clients)
+            {
+                <div class="col-12 col-sm-6 col-lg-3 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <h5 class="card-title mb-3">@client.Name</h5>
+                            <p class="card-text"><strong>Industry:</strong> @client.Industry.GetDisplayName()</p>
+                            <a href="/client/@client.Id" class="btn btn-primary mt-3">
+                                <span class="bi bi-eye me-1"></span> View Profile
+                            </a>
+                        </div>
+                    </div>
                 </div>
-                <a href="/client/@client.Id" class="btn btn-primary">View Profile</a>
-            </div>
-        }
+            }
+        </div>
     </div>
 }
 
 @code {
-    public string Title { get; private set; } = "My clients";
+    public string Title { get; private set; } = "My Clients";
 
     private List<Client> clients = new();
     private bool isAuthorized = false;
