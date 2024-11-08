@@ -21,7 +21,7 @@
         <AuthorizeView Roles="Admin">
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="new-client">
-                    <span class="bi bi-boxes d-flex align-items-center" aria-hidden="true"></span> New Client
+                    <span class="bi bi-box d-flex align-items-center" aria-hidden="true"></span> New Client
                 </NavLink>
             </div>
         </AuthorizeView>
@@ -33,6 +33,31 @@
             </NavLink>
         </div>
         </AuthorizeView>
+
+        <AuthorizeView Roles="Admin">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="overview">
+                    <span class="bi bi-binoculars-fill d-flex align-items-center" aria-hidden="true"></span> Overview
+                </NavLink>
+            </div>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="ProjectManager">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="my-clients">
+                    <span class="bi bi-boxes d-flex align-items-center" aria-hidden="true"></span> My Clients
+                </NavLink>
+            </div>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="Others">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="my-tasks">
+                    <span class="bi bi-card-checklist d-flex align-items-center" aria-hidden="true"></span> My Tasks
+                </NavLink>
+            </div>
+        </AuthorizeView>
+        
 
         <AuthorizeView>
             <Authorized>

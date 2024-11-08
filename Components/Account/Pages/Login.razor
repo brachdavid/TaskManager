@@ -8,8 +8,8 @@
 <PageTitle>@Title</PageTitle>
 <SectionContent SectionName="page-title">@Title</SectionContent>
 
-<div class="row">
-    <div class="col-md-4">
+<div class="row text-center justify-content-center">
+    <div class="col-lg-8">
         <section>
             <StatusMessage Message="@errorMessage" />
             <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
@@ -48,13 +48,6 @@
                     </p>
                 </div>
             </EditForm>
-        </section>
-    </div>
-    <div class="col-md-6 col-md-offset-2">
-        <section>
-            <h3>Use another service to log in.</h3>
-            <hr />
-            <ExternalLoginPicker />
         </section>
     </div>
 </div>

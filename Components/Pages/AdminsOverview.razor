@@ -1,0 +1,118 @@
+﻿@page "/overview"
+
+@using Microsoft.EntityFrameworkCore
+@using TaskManager.Models
+@inject ApplicationDbContext DbContext
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<TeamMember> UserManager
+
+<PageTitle>@Title</PageTitle>
+<SectionContent SectionName="page-title">@Title</SectionContent>
+
+@if (!isAuthorized)
+{
+    <p class="text-danger">You do not have permission to access this page.</p>
+}
+else if (clients == null)
+{
+    <p>Loading clients and their tasks...</p>
+}
+else if (!clients.Any())
+{
+    <p>No clients available.</p>
+}
+else
+{
+    @foreach (var client in clients)
+    {
+        <div class="card my-4 mx-auto col-lg-8">
+            <div class="card-header text-white bg-primary text-center">
+                <h4 class="card-title mb-0">@client.Name</h4>
+            </div>
+            <div class="card-body text-center">
+                <!-- Client Information -->
+                <div class="mb-3">
+                    <strong>Industry:</strong> @client.Industry.GetDisplayName()
+                </div>
+                <div class="mb-3">
+                    <strong>Contact Person:</strong> @client.ContactPerson
+                </div>
+                <div class="mb-3">
+                    <strong>Contact Email:</strong> @client.ContactEmail
+                </div>
+                <div class="mb-3">
+                    <strong>Start Date:</strong> @client.StartDate.ToShortDateString()
+                </div>
+
+                <!-- Task List -->
+                @if (client.Tasks.Any())
+                {
+                    <hr />
+                    <h5 class="text-center"> Tasks:</h5>
+                    <hr />
+                    <ul class="list-group list-group-flush">
+                        @foreach (var task in client.Tasks)
+                        {
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>@task.Title</strong>
+                                        <p class="mb-0">Due Date: @task.DueDate.ToShortDateString()</p>
+                                        <small>Status: @task.Status.GetDisplayName()</small>
+                                    </div>
+                                    <a href="/task/@task.Id" class="btn btn-sm btn-primary">View Task</a>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-muted mt-3">No tasks assigned to this client.</p>
+                }
+            </div>
+
+            <!-- Footer with Actions -->
+            <div class="card-footer d-flex justify-content-between">
+                <a href="/client/@client.Id" class="btn btn-info">
+                    <span class="bi bi-box-fill me-1"></span> View Client
+                </a>
+                <a href="/edit-client/@client.Id" class="btn btn-warning">
+                    <span class="bi bi-pencil-square me-1"></span> Edit Client
+                </a>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    public string Title { get; private set; } = "Admin's Overview";
+
+    private List<Client> clients = new();
+    private bool isAuthorized = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Získání přihlášeného uživatele
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(authState.User);
+
+        // Ověření, zda je uživatel přihlášený
+        if (user == null)
+        {
+            return;
+        }
+
+        // Získání rolí uživatele
+        var roles = await UserManager.GetRolesAsync(user);
+        isAuthorized = roles.Contains("Admin");
+
+        if (isAuthorized)
+        {
+            // Načtení klientů a jejich přidružených úkolů
+            clients = await DbContext.Clients
+                .Include(c => c.Tasks)
+                .ToListAsync();
+        }
+    }
+}

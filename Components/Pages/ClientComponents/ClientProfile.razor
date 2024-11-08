@@ -14,7 +14,7 @@
 }
 else
 {
-    <div class="card my-5 mx-auto" style="max-width: 600px;">
+    <div class="card my-5 mx-auto col-lg-8 text-center">
         <div class="card-header text-white bg-primary">
             <h3 class="card-title mb-0">@client.Name</h3>
         </div>
@@ -71,13 +71,57 @@ else
             }
         </div>
     </div>
+
+    <!-- Task List -->
+    @if (client.Tasks.Any())
+    {
+        <h4 class="text-center mt-5">Assigned Tasks</h4>
+        @foreach (var task in client.Tasks)
+        {
+            <div class="card my-4 mx-auto col-lg-8 text-center">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">@task.Title</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Description:</strong>
+                        <p class="mb-0">@task.Description</p>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Due Date:</strong>
+                        <p class="mb-0">@task.DueDate.ToShortDateString()</p>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Status:</strong>
+                        <p class="mb-0">@task.Status.GetDisplayName()</p>
+                    </div>
+                    @if (task.TeamMember != null)
+                    {
+                        <div class="mb-3">
+                            <strong>Assigned Team Member:</strong>
+                            <p class="mb-0">@task.TeamMember.FirstName @task.TeamMember.LastName</p>
+                        </div>
+                    }
+                    <div class="d-flex justify-content-center mt-4">
+                        <a href="/task/@task.Id" class="btn btn-primary">
+                            <span class="bi bi-eye me-1"></span> View Task
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <p class="text-muted text-center mt-5">No tasks assigned to this client.</p>
+    }
 }
 
 @code {
     [Parameter]
     public int clientId { get; set; }
 
-    public string Title { get; private set; } = "Client profile";
+    public string Title { get; private set; } = "Client Profile";
 
     private Client? client;
     private bool isAdmin = false;
@@ -85,8 +129,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // Načtení klienta z databáze
-        client = await DbContext.Clients.Include(c => c.ProjectManager).FirstOrDefaultAsync(c => c.Id == clientId);
+        // Načtení klienta a jeho úkolů z databáze
+        client = await DbContext.Clients
+            .Include(c => c.ProjectManager)
+            .Include(c => c.Tasks)
+            .ThenInclude(t => t.TeamMember)
+            .FirstOrDefaultAsync(c => c.Id == clientId);
+
         if (client == null)
         {
             // Přesměrování na stránku "not found" pokud klient neexistuje
