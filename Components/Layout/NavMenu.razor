@@ -18,11 +18,13 @@
             </NavLink>
         </div>
 
+        <AuthorizeView Roles="ProjectManager, Admin, Others">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="calendar">
                 <span class="bi bi-calendar3 d-flex align-items-center" aria-hidden="true"></span> Calendar
             </NavLink>
         </div>
+        </AuthorizeView>
 
         <AuthorizeView Roles="Admin">
             <div class="nav-item px-3">
@@ -67,6 +69,12 @@
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="our-team">
                 <span class="bi bi-people-fill d-flex align-items-center" aria-hidden="true"></span> Our Team
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="our-clients">
+                <span class="bi bi-bounding-box-circles d-flex align-items-center" aria-hidden="true"></span> Our Clients
             </NavLink>
         </div>
 

@@ -68,9 +68,10 @@ else
 
         if (isAuthorized)
         {
-            // Načtení úkolů, které mají přiřazeného uživatele s ID přihlášeného uživatele
+            // Načtení úkolů, které mají přiřazeného uživatele s ID přihlášeného uživatele a seřazení podle DueDate vzestupně
             tasks = await DbContext.TaskItems
                 .Where(t => t.TeamMemberId == user.Id)
+                .OrderBy(t => t.DueDate) // Přidáno seřazení podle DueDate
                 .ToListAsync();
         }
     }

@@ -27,7 +27,6 @@
             </div>
 
             <div class="calendar-grid">
-
                 <!-- Desktop Monthly View -->
                 <div class="d-none d-lg-flex flex-wrap">
                     @foreach (var week in calendarDays)
@@ -58,14 +57,13 @@
                     @foreach (var day in currentWeek)
                     {
                         <div class="day-square border d-flex flex-column justify-content-start align-items-center" style="width: 50%; aspect-ratio: 1;">
-                            <p class="day-number mb-1">@day.Day @day.ToString("MMM", System.Globalization.CultureInfo.InvariantCulture)</p>
-
+                            <p class="day-number mb-1" style="font-size: 1.25em;">@day.Day. @day.ToString("MM").</p>
                             @if (tasksByDay.ContainsKey(day))
                             {
                                 @foreach (var task in tasksByDay[day])
                                 {
                                     var statusClass = GetTaskStatusClass(task);
-                                    <button @onclick="() => NavigateToTask(task.Id)" class="badge @statusClass text-truncate border-0" style="max-width: 100%;">
+                                    <button @onclick="() => NavigateToTask(task.Id)" class="badge @statusClass text-truncate border-0" style="max-width: 100%; font-size: 1em;">
                                         @task.Title
                                     </button>
                                 }
@@ -79,14 +77,13 @@
                     @foreach (var day in currentWeek)
                     {
                         <div class="day-square border d-flex flex-column justify-content-start align-items-center mb-3" style="width: 100%; aspect-ratio: 1;">
-                            <p class="day-number mb-1">@day.Day @day.ToString("MMM", System.Globalization.CultureInfo.InvariantCulture)</p>
-
+                            <p class="day-number mb-1" style="font-size: 1.5em;">@day.Day. @day.ToString("MM").</p>
                             @if (tasksByDay.ContainsKey(day))
                             {
                                 @foreach (var task in tasksByDay[day])
                                 {
                                     var statusClass = GetTaskStatusClass(task);
-                                    <button @onclick="() => NavigateToTask(task.Id)" class="badge @statusClass text-truncate border-0" style="max-width: 100%;">
+                                    <button @onclick="() => NavigateToTask(task.Id)" class="badge @statusClass text-truncate border-0" style="max-width: 100%; font-size: 1em;">
                                         @task.Title
                                     </button>
                                 }
@@ -94,7 +91,6 @@
                         </div>
                     }
                 </div>
-
             </div>
 
             <!-- Legend -->
@@ -119,19 +115,55 @@
     private List<List<DateTime>> calendarDays = new();
     private List<DateTime> currentWeek = new();
     private Dictionary<DateTime, List<TaskItem>> tasksByDay = new();
+    private bool isAdmin = false;
+    private bool isProjectManager = false;
+    private string? userId;
 
     protected override async Task OnInitializedAsync()
     {
+        await SetUserRole();
         await LoadTasks();
         GenerateCalendarDays();
         GenerateCurrentWeek();
     }
 
+    private async Task SetUserRole()
+    {
+        // Získání přihlášeného uživatele
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(authState.User);
+
+        if (user != null)
+        {
+            userId = user.Id;
+            var roles = await UserManager.GetRolesAsync(user);
+            isAdmin = roles.Contains("Admin");
+            isProjectManager = roles.Contains("ProjectManager");
+        }
+    }
+
     private async Task LoadTasks()
     {
-        var tasks = await DbContext.TaskItems.ToListAsync();
-        tasksByDay = tasks.GroupBy(t => t.DueDate.Date)
-            .ToDictionary(g => g.Key, g => g.ToList());
+        IQueryable<TaskItem> query = DbContext.TaskItems.Include(t => t.Client);
+
+        if (isAdmin)
+        {
+            tasksByDay = (await query.ToListAsync())
+                .GroupBy(t => t.DueDate.Date)
+                .ToDictionary(g => g.Key, g => g.ToList());
+        }
+        else if (isProjectManager && userId != null)
+        {
+            tasksByDay = (await query.Where(t => t.Client != null && t.Client.ProjectManagerId == userId).ToListAsync())
+                .GroupBy(t => t.DueDate.Date)
+                .ToDictionary(g => g.Key, g => g.ToList());
+        }
+        else if (userId != null)
+        {
+            tasksByDay = (await query.Where(t => t.TeamMemberId == userId).ToListAsync())
+                .GroupBy(t => t.DueDate.Date)
+                .ToDictionary(g => g.Key, g => g.ToList());
+        }
     }
 
     private void GenerateCalendarDays()

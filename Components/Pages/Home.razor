@@ -1,224 +1,109 @@
 ﻿@page "/"
-
 @inject UserManager<TeamMember> UserManager
-@inject TaskManager.Data.ApplicationDbContext DbContext
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>@Title</PageTitle>
 <SectionContent SectionName="page-title">@Title</SectionContent>
 
-<h3>Registered Users and Their Roles</h3>
+<div class="row d-flex justify-content-center">
+    <div class="col-lg-8">
+        <h3>Welcome, @userName!</h3>
+        <p>@roleDescription</p>
 
-@if (users == null)
-{
-    <p>Loading users...</p>
-}
-else if (!users.Any())
-{
-    <p>No registered users found.</p>
-}
-else
-{
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Email</th>
-                <th>First Name</th>
-                <th>Last Name</th>
-                <th>Birth Date</th>
-                <th>Work Position</th>
-                <th>Skill Level</th>
-                <th>Registration date</th>
-                <th>Roles</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var user in users)
+        @if (!isAuthenticated)
+        {
+            <div class="alert alert-info">
+                <h5>Welcome to TaskManager!</h5>
+                <p>If you already have an account, please log in to access your tasks and projects. Otherwise, feel free to register and join us to get organized and manage your work efficiently.</p>
+                <div class="d-flex">
+                    <a href="/Account/Login" class="btn btn-primary me-2">Login</a>
+                    <a href="/Account/Register" class="btn btn-secondary">Register</a>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="row">
+            @if (isAdmin)
             {
-                <tr>
-                    <td>@user.Email</td>
-                    <td>@user.FirstName</td>
-                    <td>@user.LastName</td>
-                    <td>@user.BirthDate.ToShortDateString()</td>
-                    <td>@user.WorkPosition</td>
-                    <td>@user.SkillLevel</td>
-                    <td>@user.RegistrationDate.ToShortDateString()</td>
-                    <td>
-                        @if (userRoles.ContainsKey(user.Id))
-                        {
-                            @string.Join(", ", userRoles[user.Id])
-                        }
-                        else
-                        {
-                            <span>No role assigned</span>
-                        }
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
-
-<h3>Client list</h3>
-
-@if (clients == null)
-{
-    <p>Loading clients...</p>
-}
-else if (!clients.Any())
-{
-    <p>No clients available.</p>
-}
-else
-{
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Industry</th>
-                <th>Contact Person</th>
-                <th>Project Manager</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var client in clients)
-            {
-                <tr>
-                    <td>@client.Name</td>
-                    <td>@client.Industry.GetDisplayName()</td>
-                    <td>@client.ContactPerson</td>
-                    <td>@(client.ProjectManager?.LastName ?? "Nobody") @(client.ProjectManager?.FirstName ?? "")</td>
-                    <td>
-                        <a href="@($"/client/{client.Id}")" class="btn btn-link">View Profile</a>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
-
-<h3>Task List</h3>
-
-@if (tasks == null)
-{
-    <p>Loading tasks...</p>
-}
-else if (!tasks.Any())
-{
-    <p>No tasks available.</p>
-}
-else
-{
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Title</th>
-                <th>Description</th>
-                <th>Due Date</th>
-                <th>Status</th>
-                <th>Assigned Team Member</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var task in tasks)
-            {
-                <tr>
-                    <td>@task.Title</td>
-                    <td>@task.Description</td>
-                    <td>@task.DueDate.ToShortDateString()</td>
-                    <td>@task.Status</td>
-                    <td>@(task.TeamMember != null ? $"{task.TeamMember.FirstName} {task.TeamMember.LastName}" : "Unassigned")</td>
-                    <td>
-                        <a href="@($"/task/{task.Id}")" class="btn btn-link">Task Profile</a>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
-
-<h3>Clients, tasks and team members</h3>
-
-@if (clientTaskAssignments == null)
-{
-    <p>Loading client-task assignments...</p>
-}
-else if (!clientTaskAssignments.Any())
-{
-    <p>No client-task assignments available.</p>
-}
-else
-{
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>Client Name</th>
-                <th>Task Title</th>
-                <th>Due Date</th>
-                <th>Team Member</th>
-                <th>Work Position</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var assignment in clientTaskAssignments)
-            {
-                <tr>
-                    <td>@assignment.ClientName</td>
-                    <td>@assignment.TaskTitle</td>
-                    <td>@assignment.DueDate</td>
-                    <td>@assignment.TeamMemberName</td>
-                    <td>@assignment.TeamMemberPosition</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+                <div class="col-md-3">
+                    <a href="/new-client" class="btn btn-primary w-100 mb-3">Add New Client</a>
+                </div>
+                <div class="col-md-3">
+                    <a href="/new-task" class="btn btn-primary w-100 mb-3">Add New Task</a>
+                </div>
+                <div class="col-md-3">
+                    <a href="/our-clients" class="btn btn-primary w-100 mb-3">View All Clients</a>
+                </div>
+                <div class="col-md-3">
+                    <a href="/calendar" class="btn btn-primary w-100 mb-3">View Full Calendar</a>
+                </div>
+        }
+        else if (isProjectManager)
+        {
+            <div class="col-md-4">
+                <a href="/new-task" class="btn btn-primary w-100 mb-3">Add New Task</a>
+            </div>
+                <div class="col-md-4">
+                    <a href="/my-clients" class="btn btn-primary w-100 mb-3">View My Clients</a>
+                </div>
+                <div class="col-md-4">
+                    <a href="/calendar" class="btn btn-primary w-100 mb-3">View Calendar</a>
+                </div>
+        }
+        else if (isOther)
+        {
+                <div class="col-md-6">
+                    <a href="/my-tasks" class="btn btn-primary w-100 mb-3">My Tasks</a>
+                </div>
+                <div class="col-md-6">
+                    <a href="/calendar" class="btn btn-primary w-100 mb-3">My Calendar</a>
+                </div>
+        }
+        </div>
+        }
+    </div>
+</div>
 
 @code {
-    public string Title { get; private set; } = "Testing homepage";
-
-    private List<TeamMember>? users;
-    private Dictionary<string, List<string>> userRoles = new();
-    private List<Client>? clients;
-    private List<TaskItem>? tasks;
-    private List<ClientTaskAssignment> clientTaskAssignments = new();
+    public string Title { get; private set; } = "Homepage";
+    private string userName = "Guest";
+    private string roleDescription = "";
+    private bool isAdmin = false;
+    private bool isProjectManager = false;
+    private bool isOther = false;
+    private bool isAuthenticated = false;
 
     protected override async Task OnInitializedAsync()
     {
-        // Fetch all users and their roles
-        users = await UserManager.Users.ToListAsync();
-        foreach (var user in users)
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(authState.User);
+        isAuthenticated = user != null;
+
+        if (isAuthenticated && user != null)
         {
+            userName = user.FirstName;
             var roles = await UserManager.GetRolesAsync(user);
-            userRoles[user.Id] = roles.ToList();
+            isAdmin = roles.Contains("Admin");
+            isProjectManager = roles.Contains("ProjectManager");
+            isOther = roles.Contains("Others");
+
+            if (isAdmin)
+            {
+                roleDescription = "You have full control over the application, allowing you to manage all users, clients, and tasks. Feel free to explore the system and ensure everything runs smoothly.";
+            }
+            else if (isProjectManager)
+            {
+                roleDescription = "As a Project Manager, you have access to manage clients and their associated tasks. Stay on top of your projects and ensure timely completion of all tasks.";
+            }
+            else if (isOther)
+            {
+                roleDescription = "You are part of our valued team, focusing on completing tasks assigned to you. Use this page to check your tasks and keep track of deadlines.";
+            }
         }
-
-        // Fetch all clients and tasks
-        clients = await DbContext.Clients.ToListAsync();
-        tasks = await DbContext.TaskItems.Include(t => t.TeamMember).ToListAsync();
-
-        // Fetch client, task, and team member assignments
-        clientTaskAssignments = await DbContext.TaskItems
-            .Include(t => t.Client)
-            .Include(t => t.TeamMember)
-            .Select(t => new ClientTaskAssignment
-                {
-                    ClientName = t.Client.Name,
-                    TaskTitle = t.Title,
-                    DueDate = t.DueDate.ToShortDateString(),
-                    TeamMemberName = t.TeamMember != null ? $"{t.TeamMember.FirstName} {t.TeamMember.LastName}" : "Unassigned",
-                    TeamMemberPosition = t.TeamMember != null ? t.TeamMember.WorkPosition.ToString() : "N/A"
-                })
-            .ToListAsync();
-    }
-
-    private class ClientTaskAssignment
-    {
-        public string ClientName { get; set; } = string.Empty;
-        public string TaskTitle { get; set; } = string.Empty;
-        public string DueDate { get; set; } = string.Empty;
-        public string TeamMemberName { get; set; } = "Unassigned";
-        public string TeamMemberPosition { get; set; } = "N/A";
+        else
+        {
+            roleDescription = "Please log in or register to access your dashboard and start managing tasks.";
+        }
     }
 }
