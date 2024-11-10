@@ -1,0 +1,204 @@
+﻿@page "/calendar"
+
+@inject ApplicationDbContext DbContext
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<TeamMember> UserManager
+@rendermode InteractiveServer
+
+<PageTitle>@Title</PageTitle>
+<SectionContent SectionName="page-title">@Title</SectionContent>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Controls for Tablet and Mobile Versions (Weekly Navigation) -->
+            <div class="calendar-controls mb-4 d-flex justify-content-between align-items-center d-lg-none">
+                <button class="btn btn-secondary" @onclick="() => ChangeWeek(-1)">Prev</button>
+                <h4 class="mb-0">@GetWeekNumber(currentWeekStart). week - @currentWeekStart.Year</h4>
+                <button class="btn btn-secondary" @onclick="() => ChangeWeek(1)">Next</button>
+            </div>
+
+            <!-- Controls for Desktop Version (Monthly Navigation) -->
+            <div class="calendar-controls mb-4 d-flex justify-content-between align-items-center d-none d-lg-flex">
+                <button class="btn btn-secondary" @onclick="() => ChangeMonth(-1)">Previous</button>
+                <h4 class="mb-0">@currentMonth.ToString("MMMM yyyy")</h4>
+                <button class="btn btn-secondary" @onclick="() => ChangeMonth(1)">Next</button>
+            </div>
+
+            <div class="calendar-grid">
+
+                <!-- Desktop Monthly View -->
+                <div class="d-none d-lg-flex flex-wrap">
+                    @foreach (var week in calendarDays)
+                    {
+                        @foreach (var day in week)
+                        {
+                            var isCurrentMonth = day.Month == currentMonth.Month;
+                            var disabledClass = isCurrentMonth ? "" : "disabled bg-light text-muted";
+                            <div class="day-square border d-flex flex-column justify-content-start align-items-center @disabledClass" style="width: 14.28%; aspect-ratio: 1;">
+                                <p class="day-number mb-1">@day.Day</p>
+                                @if (isCurrentMonth && tasksByDay.ContainsKey(day))
+                                {
+                                    @foreach (var task in tasksByDay[day])
+                                    {
+                                        var statusClass = GetTaskStatusClass(task);
+                                        <button @onclick="() => NavigateToTask(task.Id)" class="badge @statusClass text-truncate border-0" style="max-width: 100%;">
+                                            @task.Title
+                                        </button>
+                                    }
+                                }
+                            </div>
+                        }
+                    }
+                </div>
+
+                <!-- Tablet Weekly View -->
+                <div class="d-none d-md-flex d-lg-none flex-wrap">
+                    @foreach (var day in currentWeek)
+                    {
+                        <div class="day-square border d-flex flex-column justify-content-start align-items-center" style="width: 50%; aspect-ratio: 1;">
+                            <p class="day-number mb-1">@day.Day @day.ToString("MMM", System.Globalization.CultureInfo.InvariantCulture)</p>
+
+                            @if (tasksByDay.ContainsKey(day))
+                            {
+                                @foreach (var task in tasksByDay[day])
+                                {
+                                    var statusClass = GetTaskStatusClass(task);
+                                    <button @onclick="() => NavigateToTask(task.Id)" class="badge @statusClass text-truncate border-0" style="max-width: 100%;">
+                                        @task.Title
+                                    </button>
+                                }
+                            }
+                        </div>
+                    }
+                </div>
+
+                <!-- Mobile Weekly View -->
+                <div class="d-flex d-md-none flex-wrap">
+                    @foreach (var day in currentWeek)
+                    {
+                        <div class="day-square border d-flex flex-column justify-content-start align-items-center mb-3" style="width: 100%; aspect-ratio: 1;">
+                            <p class="day-number mb-1">@day.Day @day.ToString("MMM", System.Globalization.CultureInfo.InvariantCulture)</p>
+
+                            @if (tasksByDay.ContainsKey(day))
+                            {
+                                @foreach (var task in tasksByDay[day])
+                                {
+                                    var statusClass = GetTaskStatusClass(task);
+                                    <button @onclick="() => NavigateToTask(task.Id)" class="badge @statusClass text-truncate border-0" style="max-width: 100%;">
+                                        @task.Title
+                                    </button>
+                                }
+                            }
+                        </div>
+                    }
+                </div>
+
+            </div>
+
+            <!-- Legend -->
+            <div class="legend mt-5 text-center">
+                <h5>Task Status Legend:</h5>
+                <ul class="list-unstyled">
+                    <li><span class="badge bg-secondary">Incomplete Task</span> - Incomplete tasks</li>
+                    <li><span class="badge bg-success">Completed on Time</span> - Completed tasks before the due date</li>
+                    <li><span class="badge bg-danger">Overdue Task</span> - Tasks not completed before the due date</li>
+                    <li><span class="badge bg-warning text-dark">Late Completed Task</span> - Completed tasks after the due date</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    public string Title { get; private set; } = "Calendar";
+
+    private DateTime currentMonth = DateTime.Today;
+    private DateTime currentWeekStart = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek);
+    private List<List<DateTime>> calendarDays = new();
+    private List<DateTime> currentWeek = new();
+    private Dictionary<DateTime, List<TaskItem>> tasksByDay = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTasks();
+        GenerateCalendarDays();
+        GenerateCurrentWeek();
+    }
+
+    private async Task LoadTasks()
+    {
+        var tasks = await DbContext.TaskItems.ToListAsync();
+        tasksByDay = tasks.GroupBy(t => t.DueDate.Date)
+            .ToDictionary(g => g.Key, g => g.ToList());
+    }
+
+    private void GenerateCalendarDays()
+    {
+        calendarDays.Clear();
+        var firstDayOfMonth = new DateTime(currentMonth.Year, currentMonth.Month, 1);
+        var firstDayOfWeek = firstDayOfMonth.AddDays(-(int)firstDayOfMonth.DayOfWeek);
+        var weeks = new List<DateTime>();
+
+        for (var i = 0; i < 42; i++)
+        {
+            weeks.Add(firstDayOfWeek.AddDays(i));
+            if ((i + 1) % 7 == 0)
+            {
+                calendarDays.Add(new List<DateTime>(weeks));
+                weeks.Clear();
+            }
+        }
+    }
+
+    private void GenerateCurrentWeek()
+    {
+        currentWeek.Clear();
+        for (var i = 0; i < 7; i++)
+        {
+            currentWeek.Add(currentWeekStart.AddDays(i));
+        }
+    }
+
+    private void ChangeMonth(int change)
+    {
+        currentMonth = currentMonth.AddMonths(change);
+        GenerateCalendarDays();
+    }
+
+    private void ChangeWeek(int change)
+    {
+        currentWeekStart = currentWeekStart.AddDays(change * 7);
+        GenerateCurrentWeek();
+    }
+
+    private string GetTaskStatusClass(TaskItem task)
+    {
+        if (task.Status == Status.Closed)
+        {
+            if (task.CompletedDate.HasValue && task.DueDate >= task.CompletedDate.Value)
+            {
+                return "bg-success";
+            }
+            return "bg-warning text-dark";
+        }
+        else if (task.DueDate < DateTime.Today)
+        {
+            return "bg-danger";
+        }
+        return "bg-secondary";
+    }
+
+    private int GetWeekNumber(DateTime date)
+    {
+        System.Globalization.CultureInfo cul = System.Globalization.CultureInfo.CurrentCulture;
+        int weekNum = cul.Calendar.GetWeekOfYear(date, System.Globalization.CalendarWeekRule.FirstDay, DayOfWeek.Monday);
+        return weekNum;
+    }
+
+    private void NavigateToTask(int taskId)
+    {
+        NavigationManager.NavigateTo($"/task/{taskId}");
+    }
+}
