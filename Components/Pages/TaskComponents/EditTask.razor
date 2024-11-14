@@ -107,23 +107,23 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // Get the logged-in user
+        // Get the logged-in user.
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = await UserManager.GetUserAsync(authState.User);
 
-        // Verify if the user is logged in
+        // Verify if the user is logged in.
         if (user == null)
         {
             NavigationManager.NavigateTo("/Account/AccessDenied");
             return;
         }
 
-        // Get the roles of the user
+        // Get the roles of the user.
         var roles = await UserManager.GetRolesAsync(user);
         isAdmin = roles.Contains("Admin");
         var isProjectManager = roles.Contains("ProjectManager");
 
-        // Load the task from the database
+        // Load the task from the database.
         task = await DbContext.TaskItems.Include(t => t.Client).FirstOrDefaultAsync(t => t.Id == taskId);
 
         if (task == null)
@@ -132,7 +132,7 @@ else
             return;
         }
 
-        // Verify if the user is an administrator, the project manager assigned to the client, or the user assigned to the task
+        // Verify if the user is an administrator, the project manager assigned to the client, or the user assigned to the task.
         if (isAdmin)
         {
             isAuthorized = true;
@@ -149,14 +149,14 @@ else
             canEditStatus = true;
         }
 
-        // Set the input model values from the loaded task
+        // Set the input model values from the loaded task.
         Input.Title ??= task.Title;
         Input.Description ??= task.Description;
         Input.DueDate = Input.DueDate == default ? task.DueDate : Input.DueDate;
         Input.Status = Input.Status == default ? task.Status : Input.Status;
         Input.TeamMemberId = Input.TeamMemberId == default ? task.TeamMemberId : Input.TeamMemberId;
 
-        // Load all team members with the role "Others"
+        // Load all team members with the role "Others".
         var allUsers = await DbContext.Users.ToListAsync();
         foreach (var userItem in allUsers)
         {

@@ -129,7 +129,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // Načtení klienta a jeho úkolů z databáze
+        // Load the client and hit tasks from the database.
         client = await DbContext.Clients
             .Include(c => c.ProjectManager)
             .Include(c => c.Tasks)
@@ -138,26 +138,26 @@ else
 
         if (client == null)
         {
-            // Přesměrování na stránku "not found" pokud klient neexistuje
-            Navigation.NavigateTo("/not-found");
+            // Redirect to the homepage if the client does not exist.
+            Navigation.NavigateTo("/");
             return;
         }
 
-        // Získání přihlášeného uživatele
+        // Get logged in user.
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = await UserManager.GetUserAsync(authState.User);
 
-        // Pokud uživatel není přihlášený, necháme profil klienta zobrazit, ale bez oprávnění na úpravy
+        // If the user is not logged in, we will display the client profile without editing permissions.
         if (user == null)
         {
             return;
         }
 
-        // Získání rolí uživatele
+        // Get user role.
         var roles = await UserManager.GetRolesAsync(user);
         isAdmin = roles.Contains("Admin");
 
-        // Ověření, zda je uživatel projektovým manažerem přiřazeným ke klientovi
+        // Verify that the user is the project manager assigned to the client.
         if (client.ProjectManagerId == user.Id || isAdmin)
         {
             canEditClient = true;

@@ -129,7 +129,7 @@
 
     private async Task SetUserRole()
     {
-        // Získání přihlášeného uživatele
+        // Get logged in user.
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = await UserManager.GetUserAsync(authState.User);
 

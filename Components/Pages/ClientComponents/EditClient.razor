@@ -127,28 +127,28 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // Get logged in user
+        // Get logged in user.
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = await UserManager.GetUserAsync(authState.User);
 
-        // Verify that the user is logged in
+        // Verify that the user is logged in.
         if (user == null)
         {
             Navigation.NavigateTo("/Account/AccessDenied");
             return;
         }
 
-        // Get client from database
+        // Get client from database.
         client = await DbContext.Clients.Include(c => c.ProjectManager).FirstOrDefaultAsync(c => c.Id == clientId);
 
         if (client == null)
         {
-            // If  client doesn't exist, redirect to homepage
+            // If  client doesn't exist, redirect to homepage.
             Navigation.NavigateTo("/");
             return;
         }
 
-        // Verify that the user is the assigned project manager for this client or is an administrator
+        // Verify that the user is the assigned project manager for this client or is an administrator.
         var roles = await UserManager.GetRolesAsync(user);
         isAdmin = roles.Contains("Admin");
 
@@ -156,7 +156,7 @@ else
         {
             isAuthorized = true;
 
-            // Fill Input model with client data for editing
+            // Fill Input model with client data for editing.
             Input.Name ??= client.Name;
             Input.Description ??= client.Description;
             Input.Industry = Input.Industry == default ? client.Industry : Input.Industry;
@@ -167,11 +167,11 @@ else
         }
         else
         {
-            // If the user does not have permissions, set the flag and display an error message
+            // If the user does not have permissions, set the flag and display an error message.
             isAuthorized = false;
         }
 
-        // Load available project managers
+        // Load available project managers.
         availableManagers = await DbContext.Users
             .Where(u => u.WorkPosition == WorkPosition.ProjectManager)
             .ToListAsync();
@@ -179,11 +179,11 @@ else
 
     private async Task OnValidSubmitAsync()
     {
-        // Get logged in user
+        // Get logged in user.
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = await UserManager.GetUserAsync(authState.User);
 
-        // Verify that the user is logged in
+        // Verify that the user is logged in.
         if (user == null)
         {
             Navigation.NavigateTo("/Account/AccessDenied");
@@ -195,7 +195,7 @@ else
 
         if (client == null)
         {
-            // If the client doesn't exist, redirect to homepage
+            // If the client doesn't exist, redirect to homepage.
             Navigation.NavigateTo("/");
             return;
         }

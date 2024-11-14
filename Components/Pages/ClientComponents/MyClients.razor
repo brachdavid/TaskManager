@@ -51,23 +51,23 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // Získání přihlášeného uživatele
+        // Get logged in user.
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = await UserManager.GetUserAsync(authState.User);
 
-        // Pokud uživatel není přihlášený, přesměrujeme na odmítnutí přístupu
+        // If the user is not logged in, we redirect to deny access.
         if (user == null)
         {
             return;
         }
 
-        // Získání rolí uživatele
+        // Get user role
         var roles = await UserManager.GetRolesAsync(user);
         isAuthorized = roles.Contains("ProjectManager");
 
         if (isAuthorized)
         {
-            // Načtení klientů, kteří mají přiřazeného projektového manažera s ID přihlášeného uživatele
+            // Load clients that have an assigned project manager with a logged-in user ID.
             clients = await DbContext.Clients
                 .Where(c => c.ProjectManagerId == user.Id)
                 .ToListAsync();

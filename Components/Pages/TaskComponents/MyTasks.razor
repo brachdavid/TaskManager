@@ -52,26 +52,26 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // Získání přihlášeného uživatele
+        // Get logged in user.
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = await UserManager.GetUserAsync(authState.User);
 
-        // Pokud uživatel není přihlášený, přesměrujeme na odmítnutí přístupu
+        // If the user is not logged in, we redirect him to deny access.
         if (user == null)
         {
             return;
         }
 
-        // Získání rolí uživatele
+        // Get user role.
         var roles = await UserManager.GetRolesAsync(user);
         isAuthorized = roles.Contains("Others");
 
         if (isAuthorized)
         {
-            // Načtení úkolů, které mají přiřazeného uživatele s ID přihlášeného uživatele a seřazení podle DueDate vzestupně
+            // Retrieve tasks that have an associated user with a logged-in user ID and sort by DueDate in ascending order.
             tasks = await DbContext.TaskItems
                 .Where(t => t.TeamMemberId == user.Id)
-                .OrderBy(t => t.DueDate) // Přidáno seřazení podle DueDate
+                .OrderBy(t => t.DueDate)
                 .ToListAsync();
         }
     }

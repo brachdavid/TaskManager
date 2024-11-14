@@ -89,30 +89,30 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // Načtení úkolu z databáze
+        // Load a task from the database.
         task = await DbContext.TaskItems.Include(t => t.Client).Include(t => t.TeamMember).FirstOrDefaultAsync(t => t.Id == taskId);
         if (task == null)
         {
-            // Přesměrování na stránku "not found" pokud úkol neexistuje
-            Navigation.NavigateTo("/not-found");
+            // Redirect to homepage if task does not exist.
+            Navigation.NavigateTo("/");
             return;
         }
 
-        // Získání přihlášeného uživatele
+        // Get logged in user.
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = await UserManager.GetUserAsync(authState.User);
 
-        // Pokud uživatel není přihlášený, necháme zobrazit detaily úkolu, ale bez oprávnění na úpravy nebo mazání
+        // If the user is not logged in, we display the task details without edit or delete permissions.
         if (user == null)
         {
             return;
         }
 
-        // Získání rolí uživatele
+        // Get user role.
         var roles = await UserManager.GetRolesAsync(user);
         isAdmin = roles.Contains("Admin");
 
-        // Ověření, zda je uživatel projektovým manažerem přiřazeným ke klientovi nebo je přiřazený uživatel k úkolu
+        // Verify that the user is the project manager assigned to the client or the user assigned to the task.
         if (isAdmin || (task.Client != null && task.Client.ProjectManagerId == user.Id) || task.TeamMemberId == user.Id)
         {
             canEditTask = true;

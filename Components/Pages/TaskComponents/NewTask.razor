@@ -94,31 +94,31 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // Get a logged-in user
+        // Get a logged-in user.
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = await UserManager.GetUserAsync(authState.User);
 
-        // Verify that the user is logged-in
+        // Verify that the user is logged-in.
         if (user == null)
         {
             NavigationManager.NavigateTo("/Account/AccessDenied");
             return;
         }
 
-        // Get user role
+        // Get user role.
         var roles = await UserManager.GetRolesAsync(user);
         var isAdmin = roles.Contains("Admin");
         var isProjectManager = roles.Contains("ProjectManager");
 
-        // Set permissions
+        // Set permissions.
         isAuthorized = isAdmin || isProjectManager;
 
         if (!isAuthorized)
         {
             return;
         }
-
-        // Load available clients for the logged in user (admin sees all, PM sees only assigned ones)
+        
+        // Load available clients for the logged in user (admin sees all, PM sees only assigned ones.
         if (isAdmin)
         {
             availableClients = await DbContext.Clients.ToListAsync();
@@ -130,14 +130,14 @@ else
                 .ToListAsync();
         }
 
-        // If no clients are available, the user is not allowed to continue
+        // If no clients are available, the user is not allowed to continue.
         if (!availableClients.Any())
         {
             isAuthorized = false;
             return;
         }
 
-        // Load available team members (except Admin and ProjectManager)
+        // Load available team members (except Admin and ProjectManager).
         var allUsers = await DbContext.Users.ToListAsync();
         availableTeamMembers = new List<TeamMember>();
 
@@ -153,7 +153,7 @@ else
 
     public async Task AddTask(EditContext editContext)
     {
-        // Create new task
+        // Create new task.
         var task = new TaskItem
             {
                 Title = Input.Title,
@@ -163,11 +163,11 @@ else
                 TeamMemberId = Input.TeamMemberId
             };
 
-        // Add new task to database
+        // Add new task to database.
         DbContext.TaskItems.Add(task);
         await DbContext.SaveChangesAsync();
 
-        // Redirect to homepage
+        // Redirect to homepage.
         NavigationManager.NavigateTo("/");
     }
 
